@@ -1,0 +1,209 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Dashboard — Smart Elderly Care</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR (Doctor) ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--info); color:white;"><i class="fas fa-stethoscope"></i></div>
+          <div class="sidebar-brand-text"><h3>Doctor Portal</h3><span>Smart Care System</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.95rem;background:linear-gradient(135deg,var(--info),var(--primary));color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;">
+          {{ request.user.first_name|first|default:request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">Dr. {{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email" style="font-size:0.75rem;color:var(--text-muted);">{{ profile.specialization|default:request.user.email }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'doctor_dashboard' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'doctor_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>My Profile</a>
+        <span class="nav-section-label">Practice</span>
+        <a href="{% url 'doctor_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'doctor_patients' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-hospital-user"></i></span>My Patients</a>
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--danger);font-weight:600;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2 id="welcome_msg">Welcome, Dr. {{ request.user.get_full_name|default:request.user.username }}</h2>
+            <p>{{ profile.specialization }} &nbsp;·&nbsp; Here's your practice overview today.</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="{% url 'doctor_appointments' %}" class="btn btn-outline btn-sm"><i class="fas fa-calendar-plus"></i> View Schedule</a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Stats -->
+        <div class="module-stats">
+          <div class="module-stat delay-1">
+            <div class="ms-value" id="stat_requests" style="color:var(--warning)">{{ pending_count }}</div>
+            <div class="ms-label">Pending Requests (Active)</div>
+          </div>
+          <div class="module-stat delay-2">
+            <div class="ms-value" id="stat_upcoming" style="color:var(--info)">{{ upcoming_count }}</div>
+            <div class="ms-label">Upcoming Appointments</div>
+          </div>
+          <div class="module-stat delay-3">
+            <div class="ms-value" id="stat_patients" style="color:var(--primary)">{{ total_patients }}</div>
+            <div class="ms-label">Total Patients</div>
+          </div>
+          <div class="module-stat delay-4">
+            <div class="ms-value" id="stat_completed" style="color:var(--success)">{{ total_consultations }}</div>
+            <div class="ms-label">Consultations Completed</div>
+          </div>
+        </div>
+
+        <!-- Live Schedule Notice Bar -->
+        <div style="margin-top:20px; padding:10px 16px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-md); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-size:0.86rem;">
+          <div style="display:flex; align-items:center; gap:8px; color:var(--text-primary);">
+            <i class="fas fa-circle-check" style="color:var(--primary);"></i>
+            <span>Active schedule: Showing appointments for <strong>today after {{ current_time_str }}</strong> and <strong>future dates</strong>.</span>
+          </div>
+          {% if past_count > 0 %}
+            <a href="{% url 'doctor_appointments' %}?status=past" style="color:var(--primary); font-weight:600; text-decoration:none; display:flex; align-items:center; gap:4px;">
+              <i class="fas fa-history"></i> View {{ past_count }} Past Appointment{{ past_count|pluralize }} &rarr;
+            </a>
+          {% endif %}
+        </div>
+
+        <div style="display:flex; gap:24px; margin-top:20px; flex-wrap:wrap;">
+          <!-- Left: Pending Requests -->
+          <div style="flex:1; min-width:320px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 style="font-size:1.1rem; margin:0;"><i class="fas fa-clock" style="color:var(--warning)"></i> Pending Appointment Requests</h3>
+              <span class="badge badge-warning" style="padding:3px 8px; border-radius:12px; font-size:0.8rem;">{{ pending_count }} pending</span>
+            </div>
+
+            <div id="pending_requests_list">
+              {% if recent_requests %}
+                {% for appt in recent_requests %}
+                  <div style="padding:14px; border:1px solid var(--bg-glass-border); border-radius:8px; margin-bottom:12px; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <div style="font-weight:700; font-size:1rem; color:var(--text-main);">
+                        <i class="fas fa-user-circle" style="color:var(--primary);"></i>
+                        {{ appt.elderly.get_full_name|default:appt.elderly.username }}
+                        {% if appt.elderly.elderly_profile.age %}
+                          <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">({{ appt.elderly.elderly_profile.age }} yrs, {{ appt.elderly.elderly_profile.gender }})</span>
+                        {% endif %}
+                      </div>
+                      <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px; display:flex; align-items:center; gap:6px;">
+                        <i class="fas fa-calendar" style="color:var(--primary);"></i> {{ appt.appointment_date|date:"M d, Y" }}
+                        {% if appt.appointment_date == today %}
+                          <span class="badge badge-success" style="font-size:0.7rem; padding:1px 6px; font-weight:700;">
+                            <i class="fas fa-bolt"></i> Today
+                          </span>
+                        {% endif %}
+                        &nbsp;·&nbsp; <i class="fas fa-clock" style="color:var(--info);"></i> {{ appt.appointment_time|time:"h:i A" }}
+                      </div>
+                      {% if appt.reason %}
+                        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
+                          <strong>Reason:</strong> {{ appt.reason|truncatewords:8 }}
+                        </div>
+                      {% endif %}
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                      <form method="POST" action="{% url 'doctor_appointment_action' appt.id 'accept' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-sm" title="Accept Appointment"><i class="fas fa-check"></i> Accept</button>
+                      </form>
+                      <form method="POST" action="{% url 'doctor_appointment_action' appt.id 'reject' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" title="Decline Appointment"><i class="fas fa-times"></i></button>
+                      </form>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div style="text-align:center; padding:30px 10px; color:var(--text-muted);">
+                  <i class="fas fa-calendar-check" style="font-size:2rem; opacity:0.4; margin-bottom:8px; display:block;"></i>
+                  <p style="margin:0; font-size:0.95rem;">No active upcoming appointment requests.</p>
+                </div>
+              {% endif %}
+            </div>
+            <a href="{% url 'doctor_appointments' %}?status=pending" class="btn btn-ghost btn-sm mt-2" style="width:100%; justify-content:center;">View all requests &rarr;</a>
+          </div>
+
+          <!-- Right: Upcoming / Today's Appointments -->
+          <div style="flex:1; min-width:320px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 style="font-size:1.1rem; margin:0;"><i class="fas fa-calendar-day" style="color:var(--info)"></i> Confirmed / Upcoming</h3>
+              <span class="badge badge-info" style="padding:3px 8px; border-radius:12px; font-size:0.8rem;">{{ upcoming_count }} upcoming</span>
+            </div>
+
+            <div id="today_appointments_list">
+              {% if upcoming_appointments %}
+                {% for appt in upcoming_appointments %}
+                  <div style="padding:14px; border:1px solid var(--bg-glass-border); border-radius:8px; margin-bottom:12px; background:rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div>
+                      <div style="font-weight:700; font-size:1rem; color:var(--text-main);">
+                        <i class="fas fa-user-circle" style="color:var(--info);"></i>
+                        {{ appt.elderly.get_full_name|default:appt.elderly.username }}
+                      </div>
+                      <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px; display:flex; align-items:center; gap:6px;">
+                        <i class="fas fa-calendar" style="color:var(--info);"></i> {{ appt.appointment_date|date:"M d, Y" }}
+                        {% if appt.appointment_date == today %}
+                          <span class="badge badge-success" style="font-size:0.7rem; padding:1px 6px; font-weight:700;">
+                            <i class="fas fa-bolt"></i> Today
+                          </span>
+                        {% endif %}
+                        &nbsp;·&nbsp; <i class="fas fa-clock" style="color:var(--primary);"></i> {{ appt.appointment_time|time:"h:i A" }}
+                      </div>
+                    </div>
+                    <div>
+                      <a href="{% url 'doctor_consultation' appt.id %}" class="btn btn-primary btn-sm"><i class="fas fa-notes-medical"></i> Consult</a>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div style="text-align:center; padding:30px 10px; color:var(--text-muted);">
+                  <i class="fas fa-notes-medical" style="font-size:2rem; opacity:0.4; margin-bottom:8px; display:block;"></i>
+                  <p style="margin:0; font-size:0.95rem;">No upcoming appointments scheduled.</p>
+                </div>
+              {% endif %}
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+              <a href="{% url 'doctor_appointments' %}?status=accepted" class="btn btn-ghost btn-sm" style="flex:1; justify-content:center;">Confirmed &rarr;</a>
+              {% if past_count > 0 %}
+                <a href="{% url 'doctor_appointments' %}?status=past" class="btn btn-ghost btn-sm" style="flex:1; justify-content:center; color:var(--text-muted);"><i class="fas fa-history"></i> Past History &rarr;</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'users/js/doctor-app.js' %}"></script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

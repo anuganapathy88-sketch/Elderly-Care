@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Smart Elderly Care</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/modules.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">Admin</div>
+          <div class="user-email" id="sidebar_user_email">admin@eldercare.com</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="admin-dashboard.html" class="nav-link active"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="admin-reports.html" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Basic Reports</a>
+        
+        <span class="nav-section-label">Management</span>
+        <a href="admin-users.html" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Users</a>
+        <a href="admin-doctors.html" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Doctors</a>
+        
+        <span class="nav-section-label">System Data</span>
+        <a href="admin-appointments.html" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="admin-records.html" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="sidebar-logout" onclick="Auth.logout()"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>Dashboard</h2>
+            <p>System overview and key metrics</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="module-stats">
+          <div class="module-stat delay-1">
+            <div class="ms-value" id="stat_users" style="color:var(--primary)">0</div>
+            <div class="ms-label">Total Users (Patients)</div>
+          </div>
+          <div class="module-stat delay-2">
+            <div class="ms-value" id="stat_doctors" style="color:var(--info)">0</div>
+            <div class="ms-label">Total Doctors</div>
+          </div>
+          <div class="module-stat delay-3">
+            <div class="ms-value" id="stat_appointments" style="color:var(--success)">0</div>
+            <div class="ms-label">Total Appointments</div>
+          </div>
+          <div class="module-stat delay-4">
+            <div class="ms-value" id="stat_pending" style="color:var(--warning)">0</div>
+            <div class="ms-label">Pending Appointments</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:24px; margin-top:24px; flex-wrap:wrap;">
+          
+          <div style="flex:1; min-width:300px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px;">
+            <h3 style="margin-bottom:16px; font-size:1.1rem;"><i class="fas fa-user-doctor" style="color:var(--info)"></i> Pending Doctor Approvals</h3>
+            <div id="pending_doctors_list"></div>
+            <a href="admin-doctors.html" class="btn btn-ghost btn-sm mt-2" style="width:100%; justify-content:center;">View all doctors</a>
+          </div>
+
+          <div style="flex:1; min-width:300px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px;">
+            <h3 style="margin-bottom:16px; font-size:1.1rem;"><i class="fas fa-calendar" style="color:var(--primary)"></i> Recent Appointments</h3>
+            <div id="recent_appointments_list"></div>
+            <a href="admin-appointments.html" class="btn btn-ghost btn-sm mt-2" style="width:100%; justify-content:center;">View all appointments</a>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/storage.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/admin-app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const users = Storage.getUsers();
+      const doctors = Storage.getDoctors();
+      const appts = Storage.getAllAppointments();
+
+      document.getElementById('stat_users').textContent = users.length;
+      document.getElementById('stat_doctors').textContent = doctors.filter(d => d.status !== 'pending').length;
+      document.getElementById('stat_appointments').textContent = appts.length;
+      document.getElementById('stat_pending').textContent = appts.filter(a => a.status === 'upcoming' && !a.accepted).length;
+
+      const pendingDocs = doctors.filter(d => d.status === 'pending');
+      const pDocList = document.getElementById('pending_doctors_list');
+      if (!pendingDocs.length) pDocList.innerHTML = `<p class="text-muted text-sm">No pending approvals.</p>`;
+      else {
+        pDocList.innerHTML = pendingDocs.slice(0,3).map(d => `
+          <div style="padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:600;">${d.name}</div>
+              <div style="font-size:0.8rem; color:var(--text-secondary);">${d.specialization}</div>
+            </div>
+            <span class="badge badge-warning text-xs">Pending</span>
+          </div>
+        `).join('');
+      }
+
+      const recentAppts = appts.slice(-3).reverse();
+      const rApptList = document.getElementById('recent_appointments_list');
+      if (!recentAppts.length) rApptList.innerHTML = `<p class="text-muted text-sm">No recent appointments.</p>`;
+      else {
+        rApptList.innerHTML = recentAppts.map(a => {
+          const u = Storage.getUserById(a.userId);
+          const d = Storage.getDoctorById(a.doctorId);
+          return `
+          <div style="padding:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="font-weight:600; font-size:0.95rem;">${u ? u.name : 'Unknown'} ➔ ${d ? d.name : 'Unknown'}</div>
+            <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">${a.date} at ${a.time}</div>
+          </div>
+        `}).join('');
+      }
+    });
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

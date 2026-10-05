@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consultation — Smart Elderly Care</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--info); color:white;"><i class="fas fa-stethoscope"></i></div>
+          <div class="sidebar-brand-text"><h3>Doctor Portal</h3><span>Smart Care System</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.95rem;background:linear-gradient(135deg,var(--info),var(--primary));color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;">
+          {{ request.user.first_name|first|default:request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name">Dr. {{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" style="font-size:0.75rem;color:var(--text-muted);">{{ request.user.email }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'doctor_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'doctor_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>My Profile</a>
+        <span class="nav-section-label">Practice</span>
+        <a href="{% url 'doctor_appointments' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'doctor_patients' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-hospital-user"></i></span>My Patients</a>
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--danger);font-weight:600;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <a href="{% url 'doctor_appointments' %}" class="topbar-btn" title="Back to Appointments">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <div class="topbar-title">
+            <h2>📝 Clinical Consultation</h2>
+            <p>Appointment #{{ appointment.id }} &nbsp;·&nbsp; {{ appointment.appointment_date }} at {{ appointment.appointment_time }}</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        {% if messages %}
+          <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast toast-{{ message.tags }}" style="position:static; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div style="max-width: 1000px; margin: 0 auto; display:flex; flex-direction:column; gap:24px;">
+          <!-- Patient Summary Card -->
+          <div style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:var(--radius-lg); padding:20px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+            <div style="display:flex; align-items:center; gap:16px;">
+              <div style="width:52px;height:52px;background:var(--info);border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">
+                <i class="fas fa-user"></i>
+              </div>
+              <div>
+                <div style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;">Patient Details</div>
+                <div style="font-size:1.3rem; font-weight:700; color:var(--text-main);">{{ patient.get_full_name|default:patient.username }}</div>
+                <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:2px;">
+                  {% if profile.age %}{{ profile.age }} yrs old &nbsp;·&nbsp; {{ profile.gender }}{% endif %}
+                  {% if profile.blood_group %} &nbsp;·&nbsp; Blood Group: <strong>{{ profile.blood_group }}</strong>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% if appointment.reason %}
+              <div style="background:rgba(255,255,255,0.05); padding:10px 16px; border-radius:8px; max-width:360px;">
+                <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:600;">Visit Reason / Chief Complaint</div>
+                <div style="font-size:0.9rem; color:var(--text-main); margin-top:2px;">{{ appointment.reason }}</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <form id="consult_form" method="POST" action="{% url 'doctor_consultation' appointment.id %}">
+            {% csrf_token %}
+
+            <!-- 1. Clinical Notes -->
+            <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:24px; margin-bottom:24px;">
+              <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;"><i class="fas fa-notes-medical" style="color:var(--primary)"></i> Diagnosis & Clinical Notes</h3>
+              
+              <div class="form-group">
+                <label class="form-label" for="con_diagnosis">Clinical Diagnosis *</label>
+                <input type="text" id="con_diagnosis" name="diagnosis" class="form-input" required placeholder="e.g. Essential Hypertension & Joint Pain" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="con_symptoms">Symptoms & Clinical Observations</label>
+                <textarea id="con_symptoms" name="symptoms" class="form-input form-textarea" style="padding:12px; min-height:80px;" placeholder="Patient notes dizziness in mornings, blood pressure 145/90 mmHg..."></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="con_advice">Treatment Advice & Lifestyle Guidance</label>
+                <textarea id="con_advice" name="advice" class="form-input form-textarea" style="padding:12px; min-height:80px;" placeholder="Low sodium diet, brisk 20 min morning walk, stay hydrated..."></textarea>
+              </div>
+
+              <div style="max-width:320px;">
+                <label class="form-label" for="con_followup">Recommended Follow-up Date</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-calendar-plus input-icon"></i>
+                  <input type="date" id="con_followup" name="follow_up" class="form-input" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Prescription -->
+            <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:24px; margin-bottom:24px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="display:flex; align-items:center; gap:8px; margin:0;"><i class="fas fa-prescription-bottle-medical" style="color:var(--success)"></i> Medicines & Prescription</h3>
+              </div>
+              
+              <div id="rx_meds_container" style="display:flex; flex-direction:column; gap:16px;">
+                <!-- Medicine Row 1 -->
+                <div class="med-row" style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap:12px; align-items:end; padding:16px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:var(--radius-sm);">
+                  <div>
+                    <label class="form-label" style="font-size:0.8rem;">Medicine Name</label>
+                    <input type="text" name="med_name[]" class="form-input" placeholder="e.g. Amlodipine 5mg" />
+                  </div>
+                  <div>
+                    <label class="form-label" style="font-size:0.8rem;">Dosage</label>
+                    <input type="text" name="med_dosage[]" class="form-input" placeholder="e.g. 1 Tablet" />
+                  </div>
+                  <div>
+                    <label class="form-label" style="font-size:0.8rem;">Frequency</label>
+                    <select name="med_frequency[]" class="form-input form-select">
+                      <option value="Once Daily (Morning)">Once Daily (Morning)</option>
+                      <option value="Once Daily (Night)">Once Daily (Night)</option>
+                      <option value="Twice Daily (Morning + Night)">Twice Daily (1-0-1)</option>
+                      <option value="Three Times Daily">Three Times (1-1-1)</option>
+                      <option value="As Needed (SOS)">As Needed (SOS)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label" style="font-size:0.8rem;">Duration</label>
+                    <input type="text" name="med_duration[]" class="form-input" placeholder="e.g. 14 days" />
+                  </div>
+                  <div>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="this.closest('.med-row').remove()" style="color:var(--danger); border-color:transparent;" title="Remove medicine"><i class="fas fa-trash"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn-ghost btn-sm mt-3" onclick="addMedRow()">
+                <i class="fas fa-plus"></i> Add Another Medicine
+              </button>
+
+              <div class="form-group mt-3">
+                <label class="form-label" for="con_rx_notes">General Pharmacy / Prescription Notes</label>
+                <input type="text" id="con_rx_notes" name="prescription_notes" class="form-input" placeholder="Take after food. Avoid NSAIDs without consultation." />
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:16px;">
+              <a href="{% url 'doctor_appointments' %}" class="btn btn-ghost">Cancel</a>
+              <button type="submit" class="btn btn-primary" style="padding:12px 28px; font-size:1rem;"><i class="fas fa-check-double"></i> Complete Consultation & Issue Prescription</button>
+            </div>
+          </form>
+
+          <!-- 3. Previous Records / History if available -->
+          {% if previous_consultations %}
+            <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:24px;">
+              <h3 style="margin-bottom:16px; font-size:1.1rem;"><i class="fas fa-clock-rotate-left"></i> Previous Patient History ({{ previous_consultations.count }} visits)</h3>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                {% for c in previous_consultations %}
+                  <div style="padding:14px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid var(--bg-glass-border);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                      <strong>{{ c.diagnosis }}</strong>
+                      <span style="font-size:0.8rem; color:var(--text-muted);">{{ c.created_at|date:"M d, Y" }} · Dr. {{ c.doctor.get_full_name|default:c.doctor.username }}</span>
+                    </div>
+                    {% if c.treatment_advice %}
+                      <div style="font-size:0.85rem; color:var(--text-secondary);">{{ c.treatment_advice }}</div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'users/js/doctor-app.js' %}"></script>
+  <script>
+    function addMedRow() {
+      const container = document.getElementById('rx_meds_container');
+      const row = document.createElement('div');
+      row.className = 'med-row';
+      row.style.cssText = 'display:grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap:12px; align-items:end; padding:16px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:var(--radius-sm);';
+      row.innerHTML = `
+        <div>
+          <label class="form-label" style="font-size:0.8rem;">Medicine Name</label>
+          <input type="text" name="med_name[]" class="form-input" placeholder="e.g. Metformin 500mg" required />
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.8rem;">Dosage</label>
+          <input type="text" name="med_dosage[]" class="form-input" placeholder="e.g. 1 Tab" />
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.8rem;">Frequency</label>
+          <select name="med_frequency[]" class="form-input form-select">
+            <option value="Once Daily (Morning)">Once Daily (Morning)</option>
+            <option value="Once Daily (Night)">Once Daily (Night)</option>
+            <option value="Twice Daily (Morning + Night)">Twice Daily (1-0-1)</option>
+            <option value="Three Times Daily">Three Times (1-1-1)</option>
+            <option value="As Needed (SOS)">As Needed (SOS)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="font-size:0.8rem;">Duration</label>
+          <input type="text" name="med_duration[]" class="form-input" placeholder="e.g. 30 days" />
+        </div>
+        <div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="this.closest('.med-row').remove()" style="color:var(--danger); border-color:transparent;" title="Remove medicine"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+      container.appendChild(row);
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

@@ -1,0 +1,161 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Profile — Smart Elderly Care</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--info); color:white;"><i class="fas fa-stethoscope"></i></div>
+          <div class="sidebar-brand-text"><h3>Doctor Portal</h3><span>Smart Care System</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.95rem;background:linear-gradient(135deg,var(--info),var(--primary));color:white;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;">
+          {{ request.user.first_name|first|default:request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name">Dr. {{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" style="font-size:0.75rem;color:var(--text-muted);">{{ request.user.email }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'doctor_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'doctor_profile' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>My Profile</a>
+        <span class="nav-section-label">Practice</span>
+        <a href="{% url 'doctor_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'doctor_patients' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-hospital-user"></i></span>My Patients</a>
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--danger);font-weight:600;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>👨‍⚕️ My Profile & Practice Details</h2>
+            <p>Update your clinical profile, credentials, and consultation details.</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        {% if messages %}
+          <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast toast-{{ message.tags }}" style="position:static; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div style="max-width: 800px; margin: 0 auto; background: var(--bg-card); border: 1px solid var(--bg-glass-border); border-radius: var(--radius-lg); padding: 30px;">
+          <form id="doc_profile_form" method="POST" action="{% url 'doctor_profile' %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+              <label class="form-label" for="doc_name">Full Name</label>
+              <div class="input-wrapper">
+                <i class="fas fa-user-doctor input-icon"></i>
+                <input type="text" id="doc_name" name="name" class="form-input" value="{{ profile.user.get_full_name|default:profile.user.username }}" required />
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group">
+                <label class="form-label" for="doc_spec">Specialization</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-stethoscope input-icon"></i>
+                  <input type="text" id="doc_spec" name="specialization" class="form-input" value="{{ profile.specialization }}" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="doc_exp">Experience (Years)</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-briefcase input-icon"></i>
+                  <input type="number" id="doc_exp" name="experience" class="form-input" value="{{ profile.experience_years }}" required min="0" />
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group">
+                <label class="form-label" for="doc_qual">Qualification</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-graduation-cap input-icon"></i>
+                  <input type="text" id="doc_qual" name="qualification" class="form-input" value="{{ profile.qualification }}" placeholder="e.g. MBBS, MD" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="doc_fee">Consultation Fee (₹)</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-indian-rupee-sign input-icon"></i>
+                  <input type="number" id="doc_fee" name="consultation_fee" class="form-input" value="{{ profile.consultation_fee }}" step="0.01" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="doc_hosp">Hospital / Clinic Address</label>
+              <div class="input-wrapper">
+                <i class="fas fa-hospital input-icon"></i>
+                <input type="text" id="doc_hosp" name="clinic_address" class="form-input" value="{{ profile.clinic_address }}" placeholder="Hospital name, department, address" />
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group">
+                <label class="form-label" for="doc_phone">Contact Phone</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-phone input-icon"></i>
+                  <input type="text" id="doc_phone" name="phone" class="form-input" value="{{ profile.contact_phone }}" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="doc_email">Email Address</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-envelope input-icon"></i>
+                  <input type="email" id="doc_email" class="form-input" value="{{ profile.user.email }}" disabled />
+                </div>
+                <span style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block;">Primary account email cannot be changed</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="doc_about">Professional Bio & Credentials</label>
+              <textarea id="doc_about" name="bio" class="form-input" style="padding:12px 14px; min-height: 100px;">{{ profile.bio }}</textarea>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+              <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Profile Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'users/js/doctor-app.js' %}"></script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

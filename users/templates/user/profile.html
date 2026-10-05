@@ -1,0 +1,566 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Smart Elderly Care</title>
+  <meta name="description" content="View and manage your elderly care profile — personal details, health info, and emergency contacts." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.2" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.2" />
+  <link rel="stylesheet" href="{% static 'css/profile.css' %}?v=2.2" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .input-wrapper {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+    }
+    .input-wrapper .input-icon {
+      position: absolute !important;
+      left: 14px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      color: var(--text-muted) !important;
+      font-size: 0.95rem !important;
+      pointer-events: none !important;
+      z-index: 5 !important;
+    }
+    .input-wrapper .form-input,
+    .input-wrapper .form-select {
+      padding-left: 48px !important;
+    }
+
+    /* ══ IN-PAGE EDIT PROFILE MODAL ══ */
+    .profile-modal-backdrop {
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(8, 12, 22, 0.78) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      z-index: 99999 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px !important;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.28s ease, visibility 0.28s ease;
+    }
+    .profile-modal-backdrop.open {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    .profile-modal-card {
+      background: var(--bg-card, #111827) !important;
+      border: 1px solid var(--bg-glass-border, rgba(255,255,255,0.12)) !important;
+      border-radius: 20px !important;
+      width: 100% !important;
+      max-width: 640px !important;
+      max-height: 90vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.85), 0 0 1px 1px rgba(255,255,255,0.1) !important;
+      transform: scale(0.92) translateY(16px);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden !important;
+    }
+    .profile-modal-backdrop.open .profile-modal-card {
+      transform: scale(1) translateY(0);
+    }
+    .profile-modal-header {
+      padding: 20px 24px !important;
+      border-bottom: 1px solid var(--bg-glass-border, rgba(255,255,255,0.1)) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      background: rgba(255,255,255,0.02) !important;
+    }
+    .profile-modal-close {
+      background: transparent !important;
+      border: none !important;
+      color: var(--text-muted) !important;
+      font-size: 1.5rem !important;
+      line-height: 1 !important;
+      cursor: pointer !important;
+      padding: 4px 8px !important;
+      border-radius: 8px !important;
+      transition: all 0.15s ease !important;
+    }
+    .profile-modal-close:hover {
+      color: #fff !important;
+      background: rgba(255,255,255,0.1) !important;
+    }
+    .profile-modal-body {
+      padding: 22px 24px !important;
+      overflow-y: auto !important;
+      max-height: calc(90vh - 160px) !important;
+    }
+    .profile-modal-footer {
+      padding: 16px 24px !important;
+      border-top: 1px solid var(--bg-glass-border, rgba(255,255,255,0.1)) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-end !important;
+      gap: 12px !important;
+      background: rgba(0,0,0,0.2) !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text">
+            <h3>ElderCare</h3>
+            <span>Smart Care System</span>
+          </div>
+        </a>
+      </div>
+
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ profile.full_name|default:request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ profile.full_name|default:request.user.username }}</div>
+          <div class="user-email">{{ request.user.email }}</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.75rem;"></i>
+      </a>
+
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-heart-pulse"></i></span>Medical Records</a>
+        <a href="{% url 'notifications' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-bell"></i></span>Notifications</a>
+
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>My Profile</h2>
+            <p>View and manage your personal healthcare information</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn btn-primary btn-sm" id="btn_edit_profile_top">
+            <i class="fas fa-pen"></i> <span class="hide-mobile">Edit Profile</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Profile Hero -->
+        <div class="profile-hero">
+          <div class="avatar" id="hero_avatar" style="width:84px; height:84px; font-size:2.2rem; background:linear-gradient(135deg,var(--primary),var(--accent)); display:flex; align-items:center; justify-content:center; border-radius:50%; color:white; font-weight:700; box-shadow:0 8px 24px rgba(16,185,129,0.3);">
+            {{ profile.full_name|default:request.user.username|first|upper }}
+          </div>
+          <div class="profile-hero-info">
+            <h2 id="hero_full_name">{{ profile.full_name|default:request.user.username }}</h2>
+            <div class="profile-email">{{ request.user.email }}</div>
+            <div class="profile-hero-badges" id="hero_badges" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+              {% if profile.gender %}
+                <span class="badge badge-success"><i class="fas fa-venus-mars"></i> {{ profile.gender }}</span>
+              {% endif %}
+              {% if profile.blood_group %}
+                <span class="badge badge-danger"><i class="fas fa-droplet"></i> Blood: {{ profile.blood_group }}</span>
+              {% endif %}
+              {% if profile.age %}
+                <span class="badge badge-info"><i class="fas fa-birthday-cake"></i> Age: {{ profile.age }} yrs</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="profile-hero-actions hide-mobile" style="margin-left:auto; display:flex; gap:10px;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn_edit_profile_hero">
+              <i class="fas fa-pen"></i> Edit Profile
+            </button>
+            <a href="{% url 'change_password' %}" class="btn btn-ghost btn-sm">
+              <i class="fas fa-shield-alt"></i> Change Password
+            </a>
+          </div>
+        </div>
+
+        <!-- Profile Sections -->
+        <div class="profile-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px; margin-top:24px;">
+
+          <!-- Personal Information -->
+          <div class="profile-section animate-fadeInUp delay-1" style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:24px;">
+            <div class="profile-section-title" style="display:flex; align-items:center; gap:10px; font-size:1.1rem; font-weight:700; margin-bottom:20px; color:var(--text-primary); border-bottom:1px solid var(--bg-glass-border); padding-bottom:12px;">
+              <i class="fas fa-user" style="color:var(--primary)"></i> Personal Information
+            </div>
+            <div class="details-list" style="display:flex; flex-direction:column; gap:14px;">
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Full Name</span>
+                <span class="detail-value" id="disp_full_name" style="font-weight:600; color:var(--text-primary);">{{ profile.full_name|default:request.user.username }}</span>
+              </div>
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Email Address</span>
+                <span class="detail-value" style="font-weight:600; color:var(--text-primary);">{{ request.user.email }}</span>
+              </div>
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Mobile Phone</span>
+                <span class="detail-value" id="disp_phone" style="font-weight:600; color:var(--text-primary);">{{ profile.phone|default:"—" }}</span>
+              </div>
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Age</span>
+                <span class="detail-value" id="disp_age" style="font-weight:600; color:var(--text-primary);">{{ profile.age|default:"—" }}{% if profile.age %} years{% endif %}</span>
+              </div>
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Gender</span>
+                <span class="detail-value" id="disp_gender" style="font-weight:600; color:var(--text-primary);">{{ profile.gender|default:"—" }}</span>
+              </div>
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Blood Group</span>
+                <span class="detail-value" id="disp_blood" style="font-weight:600; color:var(--primary);">{{ profile.blood_group|default:"Not specified" }}</span>
+              </div>
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Address</span>
+                <span class="detail-value" id="disp_address" style="font-weight:600; color:var(--text-primary); text-align:right; max-width:60%;">{{ profile.address|default:"Not provided" }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Emergency Contact Section -->
+          <div class="profile-section animate-fadeInUp delay-2" style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:24px;">
+            <div class="profile-section-title" style="display:flex; align-items:center; gap:10px; font-size:1.1rem; font-weight:700; margin-bottom:20px; color:var(--text-primary); border-bottom:1px solid var(--bg-glass-border); padding-bottom:12px;">
+              <i class="fas fa-phone-volume" style="color:var(--danger)"></i> Emergency Contact
+            </div>
+            <div class="details-list" style="display:flex; flex-direction:column; gap:14px;">
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Contact Person</span>
+                <span class="detail-value" id="disp_ec_name" style="font-weight:600; color:var(--text-primary);">{{ profile.emergency_contact_name|default:"Not provided" }}</span>
+              </div>
+              <div class="detail-item" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="detail-label" style="color:var(--text-secondary); font-size:0.9rem;">Contact Phone</span>
+                <span class="detail-value" id="disp_ec_phone" style="font-weight:600; color:var(--danger);">{{ profile.emergency_contact_phone|default:"Not provided" }}</span>
+              </div>
+            </div>
+
+            <div style="margin-top:24px; padding:16px; background:rgba(239,68,68,0.08); border:1px dashed rgba(239,68,68,0.3); border-radius:var(--radius-md);">
+              <div style="display:flex; gap:12px; align-items:center;">
+                <i class="fas fa-shield-heart" style="font-size:1.5rem; color:var(--danger);"></i>
+                <div style="font-size:0.85rem; color:var(--text-secondary);">
+                  In an emergency, your caregivers and doctors will immediately reach out to this contact.
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:20px;">
+              <button type="button" class="btn btn-outline btn-sm" id="btn_edit_profile_ec" style="border-color:var(--danger); color:var(--danger); width:100%; justify-content:center;">
+                <i class="fas fa-pen"></i> Update Emergency Contact
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ IN-PAGE EDIT PROFILE MODAL ══ -->
+  <div class="profile-modal-backdrop" id="profile_modal_backdrop">
+    <div class="profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal_title">
+      <div class="profile-modal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:1.1rem;">
+            <i class="fas fa-user-pen"></i>
+          </div>
+          <div>
+            <h3 id="modal_title" style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-primary);">Edit My Profile</h3>
+            <p style="margin:2px 0 0; font-size:0.82rem; color:var(--text-secondary);">Update your healthcare information and emergency contacts</p>
+          </div>
+        </div>
+        <button type="button" class="profile-modal-close" id="profile_modal_close" aria-label="Close modal">&times;</button>
+      </div>
+
+      <form id="profile_modal_form" method="POST" action="{% url 'elderly_profile_edit' %}">
+        {% csrf_token %}
+        <div class="profile-modal-body">
+          <!-- Personal Information Section -->
+          <div style="margin-bottom:18px;">
+            <span style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--primary); display:block; margin-bottom:12px;">
+              <i class="fas fa-user" style="margin-right:6px;"></i> Personal Details
+            </span>
+            <div class="form-group" style="margin-bottom:14px;">
+              <label class="form-label" for="modal_name">Full Name *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-user input-icon"></i>
+                <input type="text" id="modal_name" name="name" class="form-input" value="{{ profile.full_name|default:request.user.username }}" required />
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+              <div class="form-group">
+                <label class="form-label" for="modal_age">Age *</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-cake-candles input-icon"></i>
+                  <input type="number" id="modal_age" name="age" class="form-input" value="{{ profile.age|default:'' }}" min="1" max="120" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="modal_gender">Gender</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-venus-mars input-icon"></i>
+                  <select id="modal_gender" name="gender" class="form-input form-select">
+                    <option value="">Select gender</option>
+                    <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+                    <option value="Other" {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
+                    <option value="Prefer not to say" {% if profile.gender == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+              <div class="form-group">
+                <label class="form-label" for="modal_phone">Mobile Number</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-phone input-icon"></i>
+                  <input type="tel" id="modal_phone" name="phone" class="form-input" value="{{ profile.phone|default:'' }}" placeholder="10-digit number" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="modal_blood">Blood Group</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-droplet input-icon"></i>
+                  <select id="modal_blood" name="blood_group" class="form-input form-select">
+                    <option value="">Select blood group</option>
+                    <option value="A+" {% if profile.blood_group == 'A+' %}selected{% endif %}>A+</option>
+                    <option value="A-" {% if profile.blood_group == 'A-' %}selected{% endif %}>A-</option>
+                    <option value="B+" {% if profile.blood_group == 'B+' %}selected{% endif %}>B+</option>
+                    <option value="B-" {% if profile.blood_group == 'B-' %}selected{% endif %}>B-</option>
+                    <option value="AB+" {% if profile.blood_group == 'AB+' %}selected{% endif %}>AB+</option>
+                    <option value="AB-" {% if profile.blood_group == 'AB-' %}selected{% endif %}>AB-</option>
+                    <option value="O+" {% if profile.blood_group == 'O+' %}selected{% endif %}>O+</option>
+                    <option value="O-" {% if profile.blood_group == 'O-' %}selected{% endif %}>O-</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:6px;">
+              <label class="form-label" for="modal_address">Residential Address</label>
+              <div class="input-wrapper">
+                <i class="fas fa-location-dot input-icon"></i>
+                <input type="text" id="modal_address" name="address" class="form-input" value="{{ profile.address|default:'' }}" placeholder="Full residential address" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Emergency Contact Section -->
+          <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:16px;">
+            <span style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--danger); display:block; margin-bottom:12px;">
+              <i class="fas fa-phone-volume" style="margin-right:6px;"></i> Emergency Contact
+            </span>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <div class="form-group">
+                <label class="form-label" for="modal_ec_name">Contact Person Name</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-user-shield input-icon"></i>
+                  <input type="text" id="modal_ec_name" name="emergency_name" class="form-input" value="{{ profile.emergency_contact_name|default:'' }}" placeholder="e.g. Anil (Son)" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="modal_ec_phone">Emergency Contact Phone</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-phone-flip input-icon"></i>
+                  <input type="tel" id="modal_ec_phone" name="emergency_phone" class="form-input" value="{{ profile.emergency_contact_phone|default:'' }}" placeholder="Emergency phone" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-modal-footer">
+          <a href="{% url 'elderly_profile_edit' %}" class="btn btn-ghost btn-sm" style="margin-right:auto; font-size:0.82rem; color:var(--text-muted);">
+            <i class="fas fa-external-link-alt"></i> Full Page View
+          </a>
+          <button type="button" class="btn btn-ghost" id="profile_modal_cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="profile_modal_submit">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  {% include 'user/components/popup_messages.html' %}
+
+  <script>
+    (function() {
+      const backdrop = document.getElementById('profile_modal_backdrop');
+      const closeBtn = document.getElementById('profile_modal_close');
+      const cancelBtn = document.getElementById('profile_modal_cancel');
+      const openTopBtn = document.getElementById('btn_edit_profile_top');
+      const openHeroBtn = document.getElementById('btn_edit_profile_hero');
+      const openEcBtn = document.getElementById('btn_edit_profile_ec');
+      const form = document.getElementById('profile_modal_form');
+      const submitBtn = document.getElementById('profile_modal_submit');
+
+      function openModal(focusEc) {
+        if (!backdrop) return;
+        backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        if (focusEc) {
+          const ecInput = document.getElementById('modal_ec_name');
+          if (ecInput) setTimeout(() => ecInput.focus(), 150);
+        } else {
+          const nameInput = document.getElementById('modal_name');
+          if (nameInput) setTimeout(() => nameInput.focus(), 150);
+        }
+      }
+
+      function closeModal() {
+        if (!backdrop) return;
+        backdrop.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      if (openTopBtn) openTopBtn.addEventListener('click', (e) => { e.preventDefault(); openModal(false); });
+      if (openHeroBtn) openHeroBtn.addEventListener('click', (e) => { e.preventDefault(); openModal(false); });
+      if (openEcBtn) openEcBtn.addEventListener('click', (e) => { e.preventDefault(); openModal(true); });
+
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+      if (backdrop) {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) closeModal();
+        });
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && backdrop && backdrop.classList.contains('open')) {
+          closeModal();
+        }
+      });
+
+      // Handle AJAX Save with Instant Pop-up Notification
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const origHtml = submitBtn.innerHTML;
+          submitBtn.style.pointerEvents = 'none';
+          submitBtn.style.opacity = '0.75';
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i> Saving...';
+
+          try {
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+            const res = await fetch(form.action, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            const data = await res.json();
+            if (data.success) {
+              closeModal();
+
+              const u = data.user;
+              if (u.name) {
+                const heroName = document.getElementById('hero_full_name');
+                if (heroName) heroName.textContent = u.name;
+                const dispName = document.getElementById('disp_full_name');
+                if (dispName) dispName.textContent = u.name;
+                const initial = u.name.trim().charAt(0).toUpperCase();
+                const heroAv = document.getElementById('hero_avatar');
+                if (heroAv) heroAv.textContent = initial;
+                const sbAv = document.getElementById('sidebar_avatar');
+                if (sbAv) sbAv.textContent = initial;
+                const sbName = document.getElementById('sidebar_user_name');
+                if (sbName) sbName.textContent = u.name;
+              }
+              if (document.getElementById('disp_age')) {
+                document.getElementById('disp_age').textContent = u.age ? `${u.age} years` : '—';
+              }
+              if (document.getElementById('disp_gender')) {
+                document.getElementById('disp_gender').textContent = u.gender || '—';
+              }
+              if (document.getElementById('disp_phone')) {
+                document.getElementById('disp_phone').textContent = u.phone || '—';
+              }
+              if (document.getElementById('disp_blood')) {
+                document.getElementById('disp_blood').textContent = u.blood_group || 'Not specified';
+              }
+              if (document.getElementById('disp_address')) {
+                document.getElementById('disp_address').textContent = u.address || 'Not provided';
+              }
+              if (document.getElementById('disp_ec_name')) {
+                document.getElementById('disp_ec_name').textContent = u.emergency_name || 'Not provided';
+              }
+              if (document.getElementById('disp_ec_phone')) {
+                document.getElementById('disp_ec_phone').textContent = u.emergency_phone || 'Not provided';
+              }
+
+              const badgesWrap = document.getElementById('hero_badges');
+              if (badgesWrap) {
+                badgesWrap.innerHTML = `
+                  ${u.gender ? `<span class="badge badge-success"><i class="fas fa-venus-mars"></i> ${u.gender}</span>` : ''}
+                  ${u.blood_group ? `<span class="badge badge-danger"><i class="fas fa-droplet"></i> Blood: ${u.blood_group}</span>` : ''}
+                  ${u.age ? `<span class="badge badge-info"><i class="fas fa-birthday-cake"></i> Age: ${u.age} yrs</span>` : ''}
+                `;
+              }
+
+              // TRIGGER FLOATING POPUP NOTIFICATION
+              if (typeof window.showPopup === 'function') {
+                window.showPopup({
+                  message: data.message || "Profile updated successfully.",
+                  type: 'success',
+                  title: 'Profile Updated Successfully! ✨'
+                });
+              }
+            } else {
+              if (typeof window.showPopup === 'function') {
+                window.showPopup({
+                  message: data.message || "Failed to update profile.",
+                  type: 'error',
+                  title: 'Update Failed ⚠️'
+                });
+              }
+            }
+          } catch(err) {
+            console.error('AJAX profile update failed:', err);
+            form.submit(); // fallback to normal submit
+          } finally {
+            submitBtn.style.pointerEvents = 'auto';
+            submitBtn.style.opacity = '1';
+            submitBtn.innerHTML = origHtml;
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

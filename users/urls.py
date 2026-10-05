@@ -1,0 +1,98 @@
+from django.urls import path, re_path
+from . import views
+
+urlpatterns = [
+    # Auth & Root
+    path('', views.login_view, name='login'),
+    path('login/', views.login_view, name='login'),
+    path('login-redirect/', views.login_redirect_view, name='login_redirect'),
+    path('logout/', views.logout_view, name='logout'),
+    path('register/', views.register_elderly, name='register_elderly'),
+    path('doctor/register/', views.register_doctor, name='register_doctor'),
+    path('change-password/', views.change_password_view, name='change_password'),
+
+    # Elderly / User Module
+    path('elderly/dashboard/', views.elderly_dashboard, name='elderly_dashboard'),
+    path('elderly/profile/', views.elderly_profile_view, name='elderly_profile'),
+    path('elderly/profile/edit/', views.elderly_profile_edit, name='elderly_profile_edit'),
+    path('doctors/', views.doctors_list_view, name='doctors'),
+    path('doctors-list/', views.doctors_list_view, name='doctors_list'),
+    path('doctors/<int:doctor_id>/', views.doctor_detail_view, name='doctor_detail'),
+    path('appointments/', views.elderly_appointments_view, name='elderly_appointments'),
+    path('appointments/book/<int:doctor_id>/', views.book_appointment, name='book_appointment'),
+    path('appointments/cancel/<int:appointment_id>/', views.cancel_appointment, name='cancel_appointment'),
+    path('elderly/prescriptions/', views.elderly_medical_view, name='elderly_prescriptions'),
+    path('elderly/medical/', views.elderly_medical_view, name='elderly_medical'),
+    path('elderly/health-records/', views.elderly_medical_view, name='elderly_health_records'),
+    path('elderly/records/', views.elderly_medical_view, name='elderly_records'),
+    path('health-records/', views.elderly_medical_view, name='health_records'),
+    path('elderly/prescriptions/save/', views.elderly_save_prescription, name='elderly_save_prescription'),
+    path('elderly/medical/save-record/', views.elderly_save_record, name='elderly_save_record'),
+    path('elderly/prescription/<int:prescription_id>/', views.elderly_prescription_detail, name='elderly_prescription_detail'),
+    path('elderly/medications/add/', views.elderly_add_medication, name='elderly_add_medication'),
+    path('elderly/prescription/<int:prescription_id>/delete/', views.elderly_delete_prescription, name='elderly_delete_prescription'),
+    path('notifications/', views.notifications_view, name='notifications'),
+    path('notifications/<int:notif_id>/read/', views.mark_notification_read, name='mark_notification_read'),
+
+    # Doctor Module
+    path('doctor/dashboard/', views.doctor_dashboard, name='doctor_dashboard'),
+    path('doctor/profile/', views.doctor_profile_view, name='doctor_profile'),
+    path('doctor/appointments/', views.doctor_appointments_view, name='doctor_appointments'),
+    path('doctor/appointments/<int:appointment_id>/<str:action>/', views.doctor_appointment_action, name='doctor_appointment_action'),
+    path('doctor/patients/', views.doctor_patients_view, name='doctor_patients'),
+    path('doctor/consultation/<int:appointment_id>/', views.doctor_consultation_view, name='doctor_consultation'),
+
+    # Admin Module
+    path('admin-portal/', views.admin_dashboard, name='admin_dashboard'),
+    path('admin-portal/users/', views.admin_users_view, name='admin_users'),
+    path('admin-portal/users/<int:user_id>/toggle/', views.admin_user_toggle, name='admin_user_toggle'),
+    path('admin-portal/users/<int:user_id>/delete/', views.admin_user_delete, name='admin_user_delete'),
+    path('admin-portal/users/<int:user_id>/edit/', views.admin_user_edit, name='admin_user_edit'),
+    path('admin-portal/doctors/', views.admin_doctors_view, name='admin_doctors'),
+    path('admin-portal/doctors/<int:doctor_id>/toggle-approval/', views.admin_doctor_toggle_approval, name='admin_doctor_toggle_approval'),
+    path('admin-portal/doctors/<int:doctor_id>/edit/', views.admin_doctor_edit, name='admin_doctor_edit'),
+    path('admin-portal/appointments/', views.admin_appointments_view, name='admin_appointments'),
+    path('admin-portal/appointments/<int:appointment_id>/cancel/', views.admin_appointment_cancel, name='admin_appointment_cancel'),
+    path('admin-portal/records/', views.admin_records_view, name='admin_records'),
+    path('admin-portal/reports/', views.admin_reports_view, name='admin_reports'),
+
+    # Activities & Emergency Modules
+    path('elderly/activities/', views.activities_view, name='elderly_activities'),
+    path('activities/', views.activities_view, name='activities'),
+    path('elderly/emergency/', views.emergency_view, name='elderly_emergency'),
+    path('emergency/', views.emergency_view, name='emergency'),
+
+    # Explicit / Common Legacy .html paths
+    path('elderly/medical/dashboard.html', views.redirect_dashboard),
+    path('elderly/prescriptions/dashboard.html', views.redirect_dashboard),
+    path('elderly/dashboard.html', views.redirect_dashboard),
+    path('dashboard.html', views.redirect_dashboard),
+    path('medical.html', views.redirect_medical),
+    path('medications.html', views.redirect_prescriptions),
+    path('appointments.html', views.redirect_appointments),
+    path('profile.html', views.redirect_profile),
+    path('doctors.html', views.redirect_doctors),
+    path('notifications.html', views.redirect_notifications),
+    path('activities.html', views.redirect_activities),
+    path('emergency.html', views.redirect_emergency),
+    path('change-password.html', views.redirect_change_password),
+    path('doctor-dashboard.html', views.redirect_dashboard),
+    path('admin-dashboard.html', views.redirect_dashboard),
+
+    # Wildcard Catch-All Redirects for any relative .html clicks
+    re_path(r'.*dashboard\.html$', views.redirect_dashboard, name='redirect_dashboard'),
+    re_path(r'.*medical\.html$', views.redirect_medical, name='redirect_medical'),
+    re_path(r'.*medications\.html$', views.redirect_prescriptions, name='redirect_prescriptions'),
+    re_path(r'.*appointments\.html$', views.redirect_appointments, name='redirect_appointments'),
+    re_path(r'.*doctors\.html$', views.redirect_doctors, name='redirect_doctors'),
+    re_path(r'.*profile\.html$', views.redirect_profile, name='redirect_profile'),
+    re_path(r'.*notifications\.html$', views.redirect_notifications, name='redirect_notifications'),
+    re_path(r'.*activities\.html$', views.redirect_activities, name='redirect_activities'),
+    re_path(r'.*emergency\.html$', views.redirect_emergency, name='redirect_emergency'),
+    re_path(r'.*change-password\.html$', views.redirect_change_password, name='redirect_change_password'),
+    re_path(r'.*doctor-patients\.html$', views.redirect_doctor_patients, name='redirect_doctor_patients'),
+    re_path(r'.*doctor-consultation\.html$', views.redirect_appointments, name='redirect_doctor_consultation'),
+    re_path(r'.*admin-users\.html$', views.redirect_admin_users, name='redirect_admin_users'),
+    re_path(r'.*admin-records\.html$', views.redirect_admin_records, name='redirect_admin_records'),
+    re_path(r'.*admin-reports\.html$', views.redirect_admin_reports, name='redirect_admin_reports'),
+]

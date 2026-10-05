@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Appointments — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .data-table th, .data-table td { padding: 16px; border-bottom: 1px solid var(--bg-glass-border); }
+    .data-table th { font-weight: 600; color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+    .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">Admin</div>
+          <div class="user-email" id="sidebar_user_email">admin@eldercare.com</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="admin-dashboard.html" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="admin-reports.html" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Basic Reports</a>
+        
+        <span class="nav-section-label">Management</span>
+        <a href="admin-users.html" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Users</a>
+        <a href="admin-doctors.html" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Doctors</a>
+        
+        <span class="nav-section-label">System Data</span>
+        <a href="admin-appointments.html" class="nav-link active"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="admin-records.html" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="sidebar-logout" onclick="Auth.logout()"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>📅 All Appointments</h2>
+            <p>System-wide appointment tracking</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); overflow-x:auto;">
+          
+          <div style="padding:16px; border-bottom:1px solid var(--bg-glass-border); display:flex; gap:16px; align-items:center;">
+            <div class="search-box" style="width:300px;">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" id="filter_search" placeholder="Search by patient or doctor..." oninput="renderAppts()" />
+            </div>
+            <select id="filter_status" class="form-input form-select" style="width:200px;" onchange="renderAppts()">
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="upcoming">Upcoming (Accepted)</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="appts_tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/storage.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/admin-app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', renderAppts);
+
+    function renderAppts() {
+      const allAppts = Storage.getAllAppointments();
+      
+      const search = document.getElementById('filter_search').value.toLowerCase();
+      const statusFilter = document.getElementById('filter_status').value;
+
+      const tbody = document.getElementById('appts_tbody');
+      
+      if (!allAppts.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No appointments found in the system.</td></tr>`;
+        return;
+      }
+
+      let filtered = allAppts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      filtered = filtered.filter(a => {
+        const u = Storage.getUserById(a.userId) || { name: 'Unknown Patient' };
+        const d = Storage.getDoctorById(a.doctorId) || { name: 'Unknown Doctor' };
+        
+        let matchSearch = u.name.toLowerCase().includes(search) || d.name.toLowerCase().includes(search);
+        
+        let derivedStatus = a.status; // 'upcoming', 'completed', 'cancelled'
+        if (a.status === 'upcoming' && !a.accepted) derivedStatus = 'pending';
+
+        let matchStatus = statusFilter === 'all' || derivedStatus === statusFilter;
+        
+        return matchSearch && matchStatus;
+      });
+
+      tbody.innerHTML = filtered.map(a => {
+        const u = Storage.getUserById(a.userId) || { name: 'Unknown Patient' };
+        const d = Storage.getDoctorById(a.doctorId) || { name: 'Unknown Doctor' };
+        
+        let derivedStatus = a.status;
+        let badge = '';
+        if (a.status === 'upcoming' && !a.accepted) {
+          derivedStatus = 'pending';
+          badge = `<span class="badge badge-warning">Pending</span>`;
+        } else if (a.status === 'upcoming' && a.accepted) {
+          badge = `<span class="badge badge-info">Upcoming</span>`;
+        } else if (a.status === 'completed') {
+          badge = `<span class="badge badge-success">Completed</span>`;
+        } else {
+          badge = `<span class="badge badge-danger">Cancelled</span>`;
+        }
+
+        const canCancel = (derivedStatus === 'pending' || derivedStatus === 'upcoming');
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:600;">${a.date}</div>
+              <div style="font-size:0.8rem; color:var(--text-secondary);">${a.time}</div>
+            </td>
+            <td>${u.name}</td>
+            <td>${d.name}</td>
+            <td>${badge}</td>
+            <td style="text-align:right;">
+              ${canCancel ? `<button class="btn btn-sm btn-danger" onclick="forceCancel('${a.id}')"><i class="fas fa-ban"></i> Cancel</button>` : `<span class="text-muted text-sm">—</span>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function forceCancel(id) {
+      if (confirm('Are you sure you want to administratively cancel this appointment?')) {
+        const appt = Storage.getAllAppointments().find(a => a.id === id);
+        if (appt) {
+          Storage.updateDoctorAppointment(id, { status: 'cancelled' });
+          Storage.addPatientNotification(appt.userId, {
+            type: 'appointment_cancelled',
+            title: 'Appointment Cancelled by Admin',
+            message: `Your appointment on ${appt.date} was administratively cancelled.`,
+            icon: 'fa-ban',
+            color: 'danger',
+            read: false
+          });
+          Auth.showToast('Appointment cancelled.');
+          renderAppts();
+        }
+      }
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

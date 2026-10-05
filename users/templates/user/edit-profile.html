@@ -1,0 +1,282 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edit Profile — Smart Elderly Care</title>
+  <meta name="description" content="Update your personal details, healthcare information, and emergency contacts." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.2" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.2" />
+  <link rel="stylesheet" href="{% static 'css/profile.css' %}?v=2.2" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .input-wrapper {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+    }
+    .input-wrapper .input-icon {
+      position: absolute !important;
+      left: 16px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 20px !important;
+      height: 20px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: var(--text-muted) !important;
+      font-size: 1rem !important;
+      pointer-events: none !important;
+      z-index: 5 !important;
+    }
+    .input-wrapper .form-input,
+    .input-wrapper .form-select {
+      padding-left: 54px !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text">
+            <h3>ElderCare</h3>
+            <span>Smart Care System</span>
+          </div>
+        </a>
+      </div>
+
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ profile.full_name|default:request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name">{{ profile.full_name|default:request.user.username }}</div>
+          <div class="user-email">{{ request.user.email }}</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.75rem;"></i>
+      </a>
+
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-heart-pulse"></i></span>Medical Records</a>
+        <a href="{% url 'notifications' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-bell"></i></span>Notifications</a>
+
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>Edit Profile</h2>
+            <p>Update your personal information</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="{% url 'elderly_profile' %}" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Back to Profile</a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="edit-profile-container" style="max-width:760px; margin:0 auto;">
+          <form id="edit_profile_form" method="POST" action="{% url 'elderly_profile_edit' %}">
+            {% csrf_token %}
+
+            <!-- Personal Information -->
+            <div class="edit-form-card" style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:24px; margin-bottom:24px;">
+              <div class="profile-section-title" style="display:flex; align-items:center; gap:10px; font-size:1.1rem; font-weight:700; margin-bottom:20px; color:var(--text-primary); border-bottom:1px solid var(--bg-glass-border); padding-bottom:12px;">
+                <i class="fas fa-user" style="color:var(--primary)"></i> Personal Information
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="edit_name">Full Name *</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-user input-icon"></i>
+                  <input type="text" id="edit_name" name="name" class="form-input" value="{{ profile.full_name|default:request.user.username }}" required />
+                </div>
+              </div>
+
+              <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="form-group">
+                  <label class="form-label" for="edit_age">Age *</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-cake-candles input-icon"></i>
+                    <input type="number" id="edit_age" name="age" class="form-input" value="{{ profile.age|default:'' }}" min="1" max="120" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="edit_gender">Gender</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-venus-mars input-icon"></i>
+                    <select id="edit_gender" name="gender" class="form-input form-select">
+                      <option value="">Select gender</option>
+                      <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+                      <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+                      <option value="Other" {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
+                      <option value="Prefer not to say" {% if profile.gender == 'Prefer not to say' %}selected{% endif %}>Prefer not to say</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="form-group">
+                  <label class="form-label" for="edit_phone">Mobile Number</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-phone input-icon"></i>
+                    <input type="tel" id="edit_phone" name="phone" class="form-input" value="{{ profile.phone|default:'' }}" placeholder="10-digit number" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="edit_blood">Blood Group</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-droplet input-icon"></i>
+                    <select id="edit_blood" name="blood_group" class="form-input form-select">
+                      <option value="">Select blood group</option>
+                      <option value="A+" {% if profile.blood_group == 'A+' %}selected{% endif %}>A+</option>
+                      <option value="A-" {% if profile.blood_group == 'A-' %}selected{% endif %}>A-</option>
+                      <option value="B+" {% if profile.blood_group == 'B+' %}selected{% endif %}>B+</option>
+                      <option value="B-" {% if profile.blood_group == 'B-' %}selected{% endif %}>B-</option>
+                      <option value="AB+" {% if profile.blood_group == 'AB+' %}selected{% endif %}>AB+</option>
+                      <option value="AB-" {% if profile.blood_group == 'AB-' %}selected{% endif %}>AB-</option>
+                      <option value="O+" {% if profile.blood_group == 'O+' %}selected{% endif %}>O+</option>
+                      <option value="O-" {% if profile.blood_group == 'O-' %}selected{% endif %}>O-</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="edit_address">Residential Address</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-location-dot input-icon"></i>
+                  <input type="text" id="edit_address" name="address" class="form-input" value="{{ profile.address|default:'' }}" placeholder="Full residential address" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Emergency Contact -->
+            <div class="edit-form-card" style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:24px; margin-bottom:24px;">
+              <div class="profile-section-title" style="display:flex; align-items:center; gap:10px; font-size:1.1rem; font-weight:700; margin-bottom:20px; color:var(--text-primary); border-bottom:1px solid var(--bg-glass-border); padding-bottom:12px;">
+                <i class="fas fa-phone-volume" style="color:var(--danger)"></i> Emergency Contact
+              </div>
+
+              <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="form-group">
+                  <label class="form-label" for="edit_ec_name">Contact Person Name</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-user-shield input-icon"></i>
+                    <input type="text" id="edit_ec_name" name="emergency_name" class="form-input" value="{{ profile.emergency_contact_name|default:'' }}" placeholder="e.g. Rohit (Son)" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="edit_ec_phone">Emergency Contact Phone</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-phone-flip input-icon"></i>
+                    <input type="tel" id="edit_ec_phone" name="emergency_phone" class="form-input" value="{{ profile.emergency_contact_phone|default:'' }}" placeholder="Emergency phone number" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions" style="display:flex; justify-content:flex-end; gap:14px;">
+              <a href="{% url 'elderly_profile' %}" class="btn btn-ghost"><i class="fas fa-times"></i> Cancel</a>
+              <button type="submit" class="btn btn-primary" id="save_profile_btn">
+                <i class="fas fa-save"></i> Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  {% include 'user/components/popup_messages.html' %}
+  <script>
+    (function() {
+      const form = document.getElementById('edit_profile_form');
+      const saveBtn = document.getElementById('save_profile_btn');
+
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const origHtml = saveBtn.innerHTML;
+          saveBtn.style.pointerEvents = 'none';
+          saveBtn.style.opacity = '0.75';
+          saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i> Saving...';
+
+          try {
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+            const res = await fetch(form.action, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            const data = await res.json();
+            if (data.success) {
+              if (typeof window.showPopup === 'function') {
+                window.showPopup({
+                  message: data.message || "Profile updated successfully.",
+                  type: 'success',
+                  title: 'Profile Updated Successfully! ✨'
+                });
+              }
+              setTimeout(() => {
+                window.location.href = "{% url 'elderly_profile' %}";
+              }, 1100);
+            } else {
+              if (typeof window.showPopup === 'function') {
+                window.showPopup({
+                  message: data.message || "Failed to update profile.",
+                  type: 'error',
+                  title: 'Update Failed ⚠️'
+                });
+              }
+              saveBtn.style.pointerEvents = 'auto';
+              saveBtn.style.opacity = '1';
+              saveBtn.innerHTML = origHtml;
+            }
+          } catch(err) {
+            console.error('AJAX profile edit failed, submitting normally:', err);
+            form.submit();
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

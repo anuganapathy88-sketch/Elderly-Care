@@ -1,0 +1,769 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctors — Smart Elderly Care</title>
+  <meta name="description" content="Find and book appointments with verified doctors and geriatric specialists." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.3" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.3" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.3" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    /* Search box icon and input alignment */
+    .search-box {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      flex: 1 !important;
+      min-width: 260px !important;
+    }
+    .search-box .search-icon {
+      position: absolute !important;
+      left: 18px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 20px !important;
+      height: 20px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: var(--text-muted) !important;
+      font-size: 1rem !important;
+      pointer-events: none !important;
+      z-index: 5 !important;
+      transition: color var(--transition) !important;
+    }
+    .search-box:focus-within .search-icon {
+      color: var(--primary) !important;
+    }
+    .search-box input {
+      width: 100% !important;
+      padding-left: 58px !important;
+      padding-right: 18px !important;
+      padding-top: 12px !important;
+      padding-bottom: 12px !important;
+      background: var(--bg-glass) !important;
+      border: 1.5px solid var(--bg-glass-border) !important;
+      border-radius: var(--radius-md) !important;
+      color: var(--text-primary) !important;
+      outline: none !important;
+      font-size: 0.92rem !important;
+    }
+    .search-box input:focus {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 3px var(--primary-glow) !important;
+    }
+
+    .doctor-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 22px !important;
+      transition: all 0.3s ease;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      height: 330px !important; /* Exact same height for all doctor cards */
+      box-sizing: border-box !important;
+      position: relative;
+    }
+    .doctor-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .doctor-card.highlight-focus {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    /* Uniform Book Appointment Button across all cards */
+    .btn-book-appointment {
+      width: 100% !important;
+      height: 44px !important;
+      padding: 12px 18px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      font-size: 0.92rem !important;
+      font-weight: 600 !important;
+      border-radius: var(--radius-md) !important;
+      box-sizing: border-box !important;
+      line-height: 1 !important;
+      transition: all 0.25s ease !important;
+    }
+    .btn-book-appointment:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 14px var(--primary-glow) !important;
+    }
+
+    /* ══ CRITICAL FLEXBOX LAYOUT CONTAINMENT ══ */
+    html, body {
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+    }
+
+    .app-layout {
+      display: flex !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+      position: relative !important;
+      overflow-x: hidden !important;
+    }
+
+    .main-content {
+      flex: 1 1 0% !important;
+      min-width: 0 !important;
+      width: calc(100vw - var(--sidebar-width, 260px)) !important;
+      max-width: calc(100vw - var(--sidebar-width, 260px)) !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+
+    @media (max-width: 992px) {
+      .main-content {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin-left: 0 !important;
+      }
+    }
+
+    .page-content {
+      min-width: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+      padding: 24px 28px !important;
+    }
+
+    .doctors-scroll-wrapper {
+      position: relative !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    /* ══ HORIZONTAL SCROLLBAR STYLES ══ */
+    .doctors-horizontal-scroll {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      overflow-x: scroll !important; /* Force browser scrollbar */
+      overflow-y: hidden !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      gap: 20px !important;
+      padding: 12px 6px 24px 6px !important;
+      scroll-behavior: smooth !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: auto !important;
+      scrollbar-color: #10b981 rgba(255, 255, 255, 0.12) !important;
+    }
+    .doctors-horizontal-scroll.is-dragging {
+      cursor: grabbing !important;
+      user-select: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Prominent visible horizontal scroll bar at bottom */
+    .doctors-horizontal-scroll::-webkit-scrollbar {
+      height: 14px !important;
+      display: block !important;
+    }
+    .doctors-horizontal-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.95) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 10px !important;
+      margin: 0 4px !important;
+    }
+    .doctors-horizontal-scroll::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, #10b981, #059669) !important;
+      border-radius: 10px !important;
+      border: 2.5px solid rgba(15, 23, 42, 0.95) !important;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.6) !important;
+      cursor: grab !important;
+    }
+    .doctors-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(90deg, #34d399, #10b981) !important;
+    }
+    .doctors-horizontal-scroll::-webkit-scrollbar-thumb:active {
+      cursor: grabbing !important;
+    }
+
+    .doctors-horizontal-scroll .doctor-card {
+      flex: 0 0 330px !important;
+      min-width: 330px !important;
+      max-width: 330px !important;
+      box-sizing: border-box !important;
+      scroll-snap-align: start;
+    }
+
+    /* Floating Side Navigation Arrows */
+    .floating-scroll-arrow {
+      position: absolute;
+      top: 48%;
+      transform: translateY(-50%);
+      z-index: 25;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(10, 15, 30, 0.92);
+      border: 2px solid var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(16, 185, 129, 0.4);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(8px);
+    }
+    .floating-scroll-arrow:hover {
+      background: var(--primary);
+      color: #fff;
+      transform: translateY(-50%) scale(1.12);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.7);
+    }
+    .floating-scroll-arrow.float-left {
+      left: -16px;
+    }
+    .floating-scroll-arrow.float-right {
+      right: -16px;
+    }
+    @media (max-width: 768px) {
+      .floating-scroll-arrow { display: none; }
+    }
+
+    /* Quick Jump Navigator Pills */
+    .doctor-quick-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 6px 2px 14px;
+      margin-bottom: 8px;
+      align-items: center;
+      scrollbar-width: thin;
+    }
+    .doctor-quick-nav::-webkit-scrollbar {
+      height: 4px;
+    }
+    .doctor-quick-nav::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    .doctor-nav-pill {
+      background: var(--bg-glass);
+      border: 1px solid var(--bg-glass-border);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .doctor-nav-pill:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+    .doctor-nav-pill.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.25));
+      border-color: var(--primary);
+      color: var(--primary-light);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+    }
+
+    /* Grid Mode fallback */
+    .doctors-grid-mode {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)) !important;
+      gap: 20px !important;
+      overflow-x: visible !important;
+      width: 100% !important;
+    }
+    .doctors-grid-mode .doctor-card {
+      flex: unset !important;
+      min-width: unset !important;
+      max-width: unset !important;
+    }
+
+    /* Filter pills scrollbar */
+    .filter-pills-row::-webkit-scrollbar {
+      height: 6px !important;
+    }
+    .filter-pills-row::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.04) !important;
+      border-radius: 6px !important;
+    }
+    .filter-pills-row::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22) !important;
+      border-radius: 6px !important;
+    }
+
+    /* Sticky Bottom Scroll Controls Bar */
+    .scroll-controls-bar {
+      position: sticky;
+      bottom: 16px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10, 15, 30, 0.94);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 12px 20px;
+      margin-top: 14px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.2);
+      transition: all var(--transition);
+    }
+    .scroll-progress-track {
+      flex: 1;
+      max-width: 260px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0 16px;
+      position: relative;
+    }
+    .scroll-progress-fill {
+      height: 100%;
+      width: 10%;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      border-radius: 10px;
+      transition: width 0.12s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text"><h3>ElderCare</h3><span>Smart Care System</span></div>
+        </a>
+      </div>
+
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email">{{ request.user.email }}</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.75rem;"></i>
+      </a>
+
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'doctors' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-heart-pulse"></i></span>Medical Records</a>
+        <a href="{% url 'notifications' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-bell"></i></span>Notifications</a>
+
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>🩺 Find Doctors</h2>
+            <p>Browse verified geriatric specialists and schedule your consultation</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="{% url 'elderly_appointments' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-calendar-check"></i> My Appointments
+          </a>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Toolbar -->
+        <div class="toolbar" style="margin-bottom: 20px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+          <form method="GET" action="{% url 'doctors' %}" style="display:flex; flex:1; gap:10px; margin:0;">
+            {% if selected_spec %}
+              <input type="hidden" name="specialization" value="{{ selected_spec }}" />
+            {% endif %}
+            <div class="search-box">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" name="q" value="{{ query }}" placeholder="Search by doctor name, specialization, qualification…" />
+            </div>
+            {% if query %}
+              <a href="{% url 'doctors' %}{% if selected_spec %}?specialization={{ selected_spec|urlencode }}{% endif %}" class="btn btn-ghost btn-sm" style="align-self:center;">Clear</a>
+            {% endif %}
+          </form>
+
+          <div class="filter-pills-row" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; max-width:100%;">
+            <a href="{% url 'doctors' %}{% if query %}?q={{ query|urlencode }}{% endif %}" class="filter-btn {% if not selected_spec %}active{% endif %}">
+              <i class="fas fa-list"></i> All
+            </a>
+            {% for spec in specializations %}
+              <a href="{% url 'doctors' %}?specialization={{ spec|urlencode }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="filter-btn {% if selected_spec == spec %}active{% endif %}">
+                {{ spec }}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Section Header with Quick Controls -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-user-doctor" style="color:var(--primary);"></i> Available Doctors
+              <span style="font-size:0.85rem; font-weight:500; color:var(--text-muted);">({{ doctors|length }} specialists)</span>
+            </h3>
+            <span id="scrollModeBadge" style="font-size:0.75rem; background:rgba(16,185,129,0.15); color:var(--primary); border:1px solid rgba(16,185,129,0.3); padding:3px 10px; border-radius:20px; font-weight:600;">
+              <i class="fas fa-arrows-left-right" style="margin-right:4px;"></i> Horizontal Scroll Active
+            </span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" id="scrollLeftBtn" class="btn btn-outline btn-sm" style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;" title="Scroll Left (Previous Doctor)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button type="button" id="scrollRightBtn" class="btn btn-outline btn-sm" style="width:36px; height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;" title="Scroll Right (Next Doctor: 4, 5...)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            <button type="button" id="viewToggleBtn" class="btn btn-ghost btn-sm" style="margin-left:6px; font-size:0.82rem; border:1px solid var(--bg-glass-border);" title="Toggle Grid / Horizontal Scroll View">
+              <i class="fas fa-table-cells-large"></i> <span id="viewToggleText">Grid View</span>
+            </button>
+          </div>
+        </div>
+
+        {% if doctors %}
+        <!-- ══ QUICK JUMP DOCTOR NAVIGATOR ══ -->
+        <div class="doctor-quick-nav" id="doctorQuickNav">
+          <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; white-space:nowrap; margin-right:4px;">
+            <i class="fas fa-compass" style="color:var(--primary);"></i> Jump To Doctor:
+          </span>
+          {% for doc in doctors %}
+            <button type="button" class="doctor-nav-pill {% if forloop.first %}active{% endif %}" data-doctor-index="{{ forloop.counter }}" title="Jump to Dr. {{ doc.user.last_name|default:doc.user.username }} ({{ doc.specialization }})">
+              <span style="width:18px; height:18px; border-radius:50%; background:rgba(16,185,129,0.2); color:var(--primary); display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700;">{{ forloop.counter }}</span>
+              <span>Dr. {{ doc.user.last_name|default:doc.user.username }}</span>
+              <span style="font-size:0.7rem; opacity:0.75;">• {{ doc.specialization }}</span>
+            </button>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ══ DOCTORS SCROLL WRAPPER WITH FLOATING ARROWS ══ -->
+        <div class="doctors-scroll-wrapper">
+          {% if doctors|length > 1 %}
+            <button type="button" id="floatScrollLeftBtn" class="floating-scroll-arrow float-left" aria-label="Previous Doctor" title="Scroll Left">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button type="button" id="floatScrollRightBtn" class="floating-scroll-arrow float-right" aria-label="Next Doctor" title="Scroll to Doctor 4 and beyond">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          {% endif %}
+
+          <!-- Doctors Horizontal Scroll Container -->
+          <div id="doctorsContainer" class="doctors-horizontal-scroll">
+            {% for doc in doctors %}
+              <div class="doctor-card animate-fadeInUp" id="doctor_card_{{ forloop.counter }}" data-doctor-index="{{ forloop.counter }}">
+                <!-- Top Section: Avatar, Name, Specialization, Clinic -->
+                <div>
+                  <div style="display:flex; gap:14px; align-items:flex-start;">
+                    <div style="width:52px; height:52px; border-radius:12px; background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(59,130,246,0.2)); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:1.4rem; flex-shrink:0;">
+                      <i class="fas fa-user-doctor"></i>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                        <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="Dr. {{ doc.user.get_full_name|default:doc.user.username }}">
+                          Dr. {{ doc.user.get_full_name|default:doc.user.username }}
+                        </h3>
+                        <span style="font-size:0.7rem; background:rgba(255,255,255,0.06); color:var(--text-muted); padding:2px 7px; border-radius:10px; font-weight:700; flex-shrink:0;">
+                          #{{ forloop.counter }}
+                        </span>
+                      </div>
+                      <div style="font-size:0.86rem; color:var(--primary); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">
+                        {{ doc.specialization }}
+                      </div>
+                      <div style="font-size:0.77rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:18px;" title="{{ doc.qualification }}">
+                        {{ doc.qualification|default:"Specialist Care Physician" }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="font-size:0.82rem; color:var(--text-secondary); display:flex; gap:8px; align-items:center; margin-top:12px; min-height:20px;">
+                    <i class="fas fa-hospital" style="color:var(--text-muted); flex-shrink:0; font-size:0.85rem;"></i>
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ doc.clinic_address|default:'ElderCare Partner Clinic' }}">
+                      {{ doc.clinic_address|default:"ElderCare Partner Clinic" }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Bottom Section: Fee & Uniform Book Appointment Button -->
+                <div style="margin-top:auto; width:100%;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid var(--bg-glass-border); font-size:0.85rem; margin-bottom:12px;">
+                    <span style="color:var(--text-muted); display:inline-flex; align-items:center; gap:6px;">
+                      <i class="fas fa-award" style="color:var(--warning);"></i> {{ doc.experience_years }} yrs exp
+                    </span>
+                    <span style="font-weight:700; color:var(--primary); font-size:1rem;">
+                      ₹{{ doc.consultation_fee }} <span style="font-size:0.75rem; font-weight:400; color:var(--text-muted);">/ visit</span>
+                    </span>
+                  </div>
+
+                  <div style="width:100%;">
+                    <a href="{% url 'doctor_detail' doc.id %}" class="btn btn-primary btn-book-appointment">
+                      <i class="fas fa-calendar-check"></i> Book Appointment
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% empty %}
+              <div style="width:100%; text-align:center; padding:48px 24px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg);">
+                <i class="fas fa-user-doctor" style="font-size:2.5rem; color:var(--text-muted); margin-bottom:16px;"></i>
+                <h3 style="color:var(--text-primary); margin-bottom:8px;">No Doctors Found</h3>
+                <p style="color:var(--text-muted);">Try adjusting your search criteria or removing the specialization filter.</p>
+                <a href="{% url 'doctors' %}" class="btn btn-outline btn-sm mt-3">Reset Filters</a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if doctors %}
+        <!-- ══ STICKY BOTTOM HORIZONTAL SCROLLBAR CONTROLS BAR ══ -->
+        <div class="scroll-controls-bar" id="scrollControlsBar">
+          <div style="display:flex; align-items:center; gap:12px; font-size:0.85rem; color:var(--text-secondary);">
+            <div style="width:32px; height:32px; border-radius:8px; background:rgba(16,185,129,0.15); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:1rem; flex-shrink:0;">
+              <i class="fas fa-arrows-left-right"></i>
+            </div>
+            <div>
+              <strong style="color:var(--text-primary);">Horizontal Scroll Bar</strong>
+              <div style="font-size:0.78rem; color:var(--text-muted);">Scroll bar at the bottom, drag cards, or click arrows to view all {{ doctors|length }} doctors</div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button type="button" class="btn btn-outline btn-sm" id="bottomScrollLeftBtn" style="width:32px; height:32px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;" title="Scroll Left">
+                <i class="fas fa-chevron-left" style="font-size:0.75rem;"></i>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="bottomScrollRightBtn" style="width:32px; height:32px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;" title="Scroll Right">
+                <i class="fas fa-chevron-right" style="font-size:0.75rem;"></i>
+              </button>
+            </div>
+            <div class="scroll-progress-track" title="Horizontal Scroll Progress">
+              <div id="scrollProgressFill" class="scroll-progress-fill"></div>
+            </div>
+            <span id="scrollCounterText" style="font-size:0.82rem; font-weight:700; color:var(--primary); min-width:80px; text-align:right;">
+              1 of {{ doctors|length }}
+            </span>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.getElementById('doctorsContainer');
+      const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+      const scrollRightBtn = document.getElementById('scrollRightBtn');
+      const floatScrollLeftBtn = document.getElementById('floatScrollLeftBtn');
+      const floatScrollRightBtn = document.getElementById('floatScrollRightBtn');
+      const bottomScrollLeftBtn = document.getElementById('bottomScrollLeftBtn');
+      const bottomScrollRightBtn = document.getElementById('bottomScrollRightBtn');
+      const viewToggleBtn = document.getElementById('viewToggleBtn');
+      const viewToggleText = document.getElementById('viewToggleText');
+      const scrollModeBadge = document.getElementById('scrollModeBadge');
+      const scrollProgressFill = document.getElementById('scrollProgressFill');
+      const scrollCounterText = document.getElementById('scrollCounterText');
+      const scrollControlsBar = document.getElementById('scrollControlsBar');
+      const navPills = document.querySelectorAll('.doctor-nav-pill');
+
+      const totalDoctors = {{ doctors|length|default:0 }};
+      const scrollAmount = 350; // Card width (330px) + gap (20px)
+
+      // Update scroll progress & indicators
+      function updateScrollIndicators() {
+        if (!container || totalDoctors === 0) return;
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (maxScroll <= 0) {
+          if (scrollProgressFill) scrollProgressFill.style.width = '100%';
+          if (scrollCounterText) scrollCounterText.textContent = `All ${totalDoctors}`;
+          return;
+        }
+
+        const scrollPercent = Math.min(100, Math.max(5, (container.scrollLeft / maxScroll) * 100));
+        if (scrollProgressFill) {
+          scrollProgressFill.style.width = scrollPercent + '%';
+        }
+
+        // Calculate current visible doctor index
+        const currentIndex = Math.min(totalDoctors, Math.max(1, Math.round(container.scrollLeft / scrollAmount) + 1));
+        if (scrollCounterText) {
+          scrollCounterText.textContent = `${currentIndex} of ${totalDoctors}`;
+        }
+
+        // Highlight active doctor nav pill
+        navPills.forEach(pill => {
+          const pillIdx = parseInt(pill.getAttribute('data-doctor-index'));
+          if (pillIdx === currentIndex) {
+            pill.classList.add('active');
+          } else {
+            pill.classList.remove('active');
+          }
+        });
+      }
+
+      if (container) {
+        container.addEventListener('scroll', updateScrollIndicators);
+        updateScrollIndicators();
+
+        // Mouse Wheel Horizontal Scroll
+        container.addEventListener('wheel', function(e) {
+          if (container.classList.contains('doctors-horizontal-scroll') && e.deltaY !== 0) {
+            e.preventDefault();
+            container.scrollLeft += e.deltaY * 1.5;
+          }
+        }, { passive: false });
+
+        // Click-and-Drag to scroll
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        container.addEventListener('mousedown', function(e) {
+          if (e.target.closest('a') || e.target.closest('button')) return;
+          isDown = true;
+          container.classList.add('is-dragging');
+          startX = e.pageX - container.offsetLeft;
+          scrollLeft = container.scrollLeft;
+        });
+
+        window.addEventListener('mouseup', function() {
+          isDown = false;
+          if (container) container.classList.remove('is-dragging');
+        });
+
+        container.addEventListener('mousemove', function(e) {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - container.offsetLeft;
+          const walk = (x - startX) * 1.5;
+          container.scrollLeft = scrollLeft - walk;
+        });
+      }
+
+      // Scroll Button actions
+      function scrollLeftAction() {
+        if (container) {
+          container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        }
+      }
+      function scrollRightAction() {
+        if (container) {
+          container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+      }
+
+      if (scrollLeftBtn) scrollLeftBtn.addEventListener('click', scrollLeftAction);
+      if (scrollRightBtn) scrollRightBtn.addEventListener('click', scrollRightAction);
+      if (floatScrollLeftBtn) floatScrollLeftBtn.addEventListener('click', scrollLeftAction);
+      if (floatScrollRightBtn) floatScrollRightBtn.addEventListener('click', scrollRightAction);
+      if (bottomScrollLeftBtn) bottomScrollLeftBtn.addEventListener('click', scrollLeftAction);
+      if (bottomScrollRightBtn) bottomScrollRightBtn.addEventListener('click', scrollRightAction);
+
+      // Quick Jump to Doctor Pill click handler
+      navPills.forEach(pill => {
+        pill.addEventListener('click', function() {
+          const targetIndex = this.getAttribute('data-doctor-index');
+          const card = document.getElementById(`doctor_card_${targetIndex}`);
+          if (card && container) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            // Add temporary focus glow
+            document.querySelectorAll('.doctor-card').forEach(c => c.classList.remove('highlight-focus'));
+            card.classList.add('highlight-focus');
+            setTimeout(() => card.classList.remove('highlight-focus'), 1800);
+          }
+        });
+      });
+
+      // Toggle Grid / Horizontal View
+      let isHorizontal = true;
+      if (viewToggleBtn && container) {
+        viewToggleBtn.addEventListener('click', function() {
+          isHorizontal = !isHorizontal;
+          const floatLeft = document.getElementById('floatScrollLeftBtn');
+          const floatRight = document.getElementById('floatScrollRightBtn');
+          const quickNav = document.getElementById('doctorQuickNav');
+
+          if (isHorizontal) {
+            container.classList.remove('doctors-grid-mode');
+            container.classList.add('doctors-horizontal-scroll');
+            if (viewToggleText) viewToggleText.textContent = 'Grid View';
+            if (scrollModeBadge) scrollModeBadge.style.display = 'inline-block';
+            if (scrollControlsBar) scrollControlsBar.style.display = 'flex';
+            if (scrollLeftBtn) scrollLeftBtn.style.display = 'inline-flex';
+            if (scrollRightBtn) scrollRightBtn.style.display = 'inline-flex';
+            if (floatLeft) floatLeft.style.display = 'flex';
+            if (floatRight) floatRight.style.display = 'flex';
+            if (quickNav) quickNav.style.display = 'flex';
+            updateScrollIndicators();
+          } else {
+            container.classList.remove('doctors-horizontal-scroll');
+            container.classList.add('doctors-grid-mode');
+            if (viewToggleText) viewToggleText.textContent = 'Horizontal Carousel';
+            if (scrollModeBadge) scrollModeBadge.style.display = 'none';
+            if (scrollControlsBar) scrollControlsBar.style.display = 'none';
+            if (scrollLeftBtn) scrollLeftBtn.style.display = 'none';
+            if (scrollRightBtn) scrollRightBtn.style.display = 'none';
+            if (floatLeft) floatLeft.style.display = 'none';
+            if (floatRight) floatRight.style.display = 'none';
+            if (quickNav) quickNav.style.display = 'none';
+          }
+        });
+      }
+    });
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

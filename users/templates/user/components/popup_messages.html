@@ -1,0 +1,374 @@
+{% load static %}
+<style>
+  /* ══ UNIVERSAL FLOATING POP-UP NOTIFICATION SYSTEM ══ */
+  .popup-container {
+    position: fixed !important;
+    top: 24px !important;
+    right: 24px !important;
+    z-index: 99999999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    max-width: 440px !important;
+    width: calc(100vw - 40px) !important;
+    pointer-events: none !important;
+  }
+  @media (max-width: 640px) {
+    .popup-container {
+      top: 14px !important;
+      right: 14px !important;
+      left: 14px !important;
+      width: auto !important;
+      max-width: none !important;
+    }
+  }
+  .popup-card {
+    pointer-events: auto !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+    padding: 16px 18px 18px 16px !important;
+    background: rgba(18, 24, 38, 0.97) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+    overflow: hidden !important;
+    transform: translateY(-24px) scale(0.95) !important;
+    opacity: 0 !important;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    font-family: inherit !important;
+  }
+  .popup-card.popup-visible {
+    transform: translateY(0) scale(1) !important;
+    opacity: 1 !important;
+  }
+  .popup-card.popup-hiding {
+    transform: translateY(-20px) scale(0.92) !important;
+    opacity: 0 !important;
+    transition: transform 0.28s ease, opacity 0.28s ease !important;
+  }
+  .popup-icon-wrap {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.25rem !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+    position: relative !important;
+  }
+  .popup-content {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+  .popup-title {
+    font-weight: 700 !important;
+    font-size: 0.96rem !important;
+    line-height: 1.3 !important;
+    margin-bottom: 3px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    color: #ffffff !important;
+  }
+  .popup-text {
+    font-size: 0.86rem !important;
+    color: #cbd5e1 !important;
+    line-height: 1.45 !important;
+    word-break: break-word !important;
+  }
+  .popup-close {
+    background: transparent !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    font-size: 0.95rem !important;
+    cursor: pointer !important;
+    padding: 4px 6px !important;
+    border-radius: 6px !important;
+    transition: all 0.15s ease !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: 2px !important;
+  }
+  .popup-close:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+  .popup-progress {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 3px !important;
+    width: 100% !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+  }
+  .popup-progress-bar {
+    height: 100% !important;
+    width: 100% !important;
+    transform-origin: left !important;
+  }
+  .popup-card:hover .popup-progress-bar {
+    animation-play-state: paused !important;
+  }
+  .popup-card.popup-success {
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(16, 185, 129, 0.3) !important;
+  }
+  .popup-card.popup-success .popup-icon-wrap {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.45)) !important;
+    color: #10b981 !important;
+    border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  }
+  .popup-card.popup-success .popup-title { color: #34d399 !important; }
+  .popup-card.popup-success .popup-progress-bar { background: #10b981 !important; }
+
+  .popup-card.popup-error {
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(239, 68, 68, 0.3) !important;
+  }
+  .popup-card.popup-error .popup-icon-wrap {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.45)) !important;
+    color: #ef4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  }
+  .popup-card.popup-error .popup-title { color: #f87171 !important; }
+  .popup-card.popup-error .popup-progress-bar { background: #ef4444 !important; }
+
+  .popup-card.popup-info {
+    border-color: rgba(59, 130, 246, 0.5) !important;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(59, 130, 246, 0.3) !important;
+  }
+  .popup-card.popup-info .popup-icon-wrap {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.45)) !important;
+    color: #3b82f6 !important;
+    border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  }
+  .popup-card.popup-info .popup-title { color: #60a5fa !important; }
+  .popup-card.popup-info .popup-progress-bar { background: #3b82f6 !important; }
+
+  .popup-card.popup-warning {
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(245, 158, 11, 0.3) !important;
+  }
+  .popup-card.popup-warning .popup-icon-wrap {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.45)) !important;
+    color: #f59e0b !important;
+    border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  }
+  .popup-card.popup-warning .popup-title { color: #fbbf24 !important; }
+  .popup-card.popup-warning .popup-progress-bar { background: #f59e0b !important; }
+</style>
+
+<script>
+(function() {
+  'use strict';
+
+  function playPopupChime(type) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+      const now = ctx.currentTime;
+      if (type === 'error') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(260, now);
+        osc.frequency.exponentialRampToValueAtTime(160, now + 0.28);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.28);
+      } else {
+        [523.25, 659.25].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          const startTime = now + i * 0.09;
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.12, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.32);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + 0.32);
+        });
+      }
+    } catch(e) {}
+  }
+
+  function getContainer() {
+    let container = document.getElementById('popup_container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'popup_container';
+      container.className = 'popup-container';
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+
+  function showPopup(options, typeFallback, titleFallback) {
+    if (!options) return;
+    if (typeof options === 'string') {
+      options = { message: options, type: typeFallback || 'success', title: titleFallback };
+    }
+    const message = options.message || '';
+    let type = (options.type || 'success').toLowerCase();
+    if (type.includes('err') || type.includes('danger')) type = 'error';
+    else if (type.includes('warn')) type = 'warning';
+    else if (type.includes('info')) type = 'info';
+    else type = 'success';
+
+    // Deduplication check: ignore identical message if fired within last 1200ms
+    const msgKey = `${type}:${message.trim()}`;
+    const nowTime = Date.now();
+    window._recentPopups = window._recentPopups || {};
+    if (window._recentPopups[msgKey] && (nowTime - window._recentPopups[msgKey] < 1200)) {
+      return null;
+    }
+    window._recentPopups[msgKey] = nowTime;
+
+    let defaultTitle = 'Saved Successfully ✨';
+    let iconClass = 'fa-circle-check';
+    if (type === 'error') {
+      defaultTitle = 'Action Failed ⚠️';
+      iconClass = 'fa-triangle-exclamation';
+    } else if (type === 'warning') {
+      defaultTitle = 'Attention ⚠️';
+      iconClass = 'fa-bell';
+    } else if (type === 'info') {
+      defaultTitle = 'Notice ℹ️';
+      iconClass = 'fa-circle-info';
+    }
+
+    const lowerMsg = message.toLowerCase();
+    if (lowerMsg.includes('profile') || lowerMsg.includes('update') || lowerMsg.includes('edited')) {
+      if (type === 'success') defaultTitle = 'Profile Updated Successfully! ✨';
+    } else if (lowerMsg.includes('appoint') && lowerMsg.includes('book')) {
+      if (type === 'success') defaultTitle = 'Appointment Booked! 📅';
+    } else if (lowerMsg.includes('medic') || lowerMsg.includes('prescri')) {
+      if (type === 'success') defaultTitle = 'Medication Saved! 💊';
+    } else if (lowerMsg.includes('record')) {
+      if (type === 'success') defaultTitle = 'Medical Record Saved! 📋';
+    } else if (lowerMsg.includes('contact')) {
+      if (type === 'success') defaultTitle = 'Emergency Contact Saved! 📞';
+    } else if (lowerMsg.includes('password')) {
+      if (type === 'success') defaultTitle = 'Password Updated! 🔒';
+    }
+
+    const title = options.title || defaultTitle;
+    const duration = options.duration || 4500;
+    const container = getContainer();
+
+    if (container.children.length >= 4) {
+      dismissPopup(container.firstElementChild);
+    }
+
+    const card = document.createElement('div');
+    card.className = `popup-card popup-${type}`;
+    card.innerHTML = `
+      <div class="popup-icon-wrap"><i class="fas ${iconClass}"></i></div>
+      <div class="popup-content">
+        <div class="popup-title">${title}</div>
+        <div class="popup-text">${message}</div>
+      </div>
+      <button type="button" class="popup-close" title="Dismiss" aria-label="Dismiss"><i class="fas fa-times"></i></button>
+      <div class="popup-progress">
+        <div class="popup-progress-bar" style="animation: popupProgress ${duration}ms linear forwards;"></div>
+      </div>
+    `;
+
+    container.appendChild(card);
+    if (!options.silent) playPopupChime(type);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        card.classList.add('popup-visible');
+      });
+    });
+
+    let dismissTimer = setTimeout(() => dismissPopup(card), duration);
+
+    card.addEventListener('mouseenter', () => {
+      clearTimeout(dismissTimer);
+      const bar = card.querySelector('.popup-progress-bar');
+      if (bar) bar.style.animationPlayState = 'paused';
+    });
+
+    card.addEventListener('mouseleave', () => {
+      const bar = card.querySelector('.popup-progress-bar');
+      if (bar) bar.style.animationPlayState = 'running';
+      dismissTimer = setTimeout(() => dismissPopup(card), 1800);
+    });
+
+    const closeBtn = card.querySelector('.popup-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearTimeout(dismissTimer);
+        dismissPopup(card);
+      });
+    }
+
+    return card;
+  }
+
+  function dismissPopup(card) {
+    if (!card || card._isDismissing) return;
+    card._isDismissing = true;
+    card.classList.remove('popup-visible');
+    card.classList.add('popup-hiding');
+    setTimeout(() => card.remove(), 320);
+  }
+
+  window.showPopup = showPopup;
+  window.showToast = (msg, type = 'success', title) => showPopup({ message: msg, type: type, title: title });
+  window.showSuccess = (msg, title) => showPopup({ message: msg, type: 'success', title: title });
+  window.showError = (msg, title) => showPopup({ message: msg, type: 'error', title: title });
+  window.showInfo = (msg, title) => showPopup({ message: msg, type: 'info', title: title });
+  window.showWarning = (msg, title) => showPopup({ message: msg, type: 'warning', title: title });
+
+  window.Auth = window.Auth || {};
+  window.Auth.showToast = (msg, type = 'success') => showPopup({ message: msg, type: type });
+})();
+</script>
+
+{% if messages %}
+  <div id="django_messages_data" style="display:none;" data-messages='[
+    {% for message in messages %}
+      {"tags": "{{ message.tags|escapejs }}", "text": "{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]'></div>
+  <script>
+    (function() {
+      function triggerDjangoPopups() {
+        if (typeof window.showPopup === 'function') {
+          {% for message in messages %}
+            window.showPopup({
+              message: "{{ message|escapejs }}",
+              type: "{% if 'error' in message.tags or 'danger' in message.tags %}error{% elif 'warning' in message.tags %}warning{% elif 'info' in message.tags %}info{% else %}success{% endif %}"
+            });
+          {% endfor %}
+        } else {
+          setTimeout(triggerDjangoPopups, 30);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', triggerDjangoPopups);
+      } else {
+        triggerDjangoPopups();
+      }
+    })();
+  </script>
+{% endif %}

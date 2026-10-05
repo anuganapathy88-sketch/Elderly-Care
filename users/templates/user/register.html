@@ -1,0 +1,281 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Smart Elderly Care</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}?v=2.1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .input-wrapper {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+    }
+    .input-wrapper .input-icon {
+      position: absolute !important;
+      left: 16px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 20px !important;
+      height: 20px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: var(--text-muted) !important;
+      font-size: 1rem !important;
+      pointer-events: none !important;
+      z-index: 5 !important;
+    }
+    .input-wrapper .form-input,
+    .input-wrapper .form-select,
+    .input-wrapper input,
+    .input-wrapper select {
+      padding-left: 54px !important;
+    }
+    .input-wrapper .input-toggle {
+      position: absolute !important;
+      right: 16px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 24px !important;
+      height: 24px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: var(--text-muted) !important;
+      cursor: pointer !important;
+      font-size: 1rem !important;
+      z-index: 5 !important;
+    }
+    .input-wrapper input[type="password"] {
+      padding-right: 52px !important;
+    }
+    .input-wrapper:focus-within .input-icon {
+      color: var(--primary) !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+
+  <div class="auth-page">
+    <!-- ── Left Panel ── -->
+    <div class="auth-left">
+      <div class="auth-brand animate-fadeInUp">
+        <div class="auth-logo"><i class="fas fa-heart-pulse"></i></div>
+        <h1>Join Smart<br/>Elderly Care</h1>
+        <p>Create an account and start providing the best care experience for your loved ones today.</p>
+      </div>
+
+      <div class="auth-features" style="margin-top: 40px;">
+        <div class="auth-feature-item delay-1">
+          <div class="auth-feature-icon"><i class="fas fa-user-shield"></i></div>
+          <div class="auth-feature-text">
+            <h4>Secure & Private</h4>
+            <p>Your health data stays protected and encrypted</p>
+          </div>
+        </div>
+        <div class="auth-feature-item delay-2">
+          <div class="auth-feature-icon"><i class="fas fa-user-doctor"></i></div>
+          <div class="auth-feature-text">
+            <h4>Verified Doctors</h4>
+            <p>Connect with vetted geriatric specialists</p>
+          </div>
+        </div>
+        <div class="auth-feature-item delay-3">
+          <div class="auth-feature-icon"><i class="fas fa-bell"></i></div>
+          <div class="auth-feature-text">
+            <h4>Smart Reminders</h4>
+            <p>Never forget medications or appointments</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right Panel ── -->
+    <div class="auth-right">
+      <div class="auth-form-container" style="max-width: 560px;">
+        <div class="auth-form-header">
+          <h2>Create Account ✨</h2>
+          <p>Fill in your details to get started — it only takes a minute</p>
+        </div>
+
+        <!-- Role Selection Tabs -->
+        <div style="display:flex; background:rgba(255,255,255,0.06); padding:4px; border-radius:12px; margin: 16px 0 24px 0; border:1px solid var(--bg-glass-border); gap:6px;">
+          <a href="{% url 'register_elderly' %}" style="flex:1; text-align:center; padding:10px 14px; border-radius:8px; font-weight:700; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; background:var(--primary); color:white; box-shadow:0 2px 10px var(--primary-glow);">
+            <i class="fas fa-heart-pulse"></i> Patient / Elderly
+          </a>
+          <a href="{% url 'register_doctor' %}?switch=1" style="flex:1; text-align:center; padding:10px 14px; border-radius:8px; font-weight:600; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text-muted); transition:all 0.2s;">
+            <i class="fas fa-user-doctor"></i> Doctor / Specialist
+          </a>
+        </div>
+
+        {% if messages %}
+          <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast toast-{{ message.tags }}" style="position:static; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form id="register_form" method="POST" action="{% url 'register_elderly' %}">
+          {% csrf_token %}
+
+          <!-- Personal Info Section -->
+          <div class="form-section-label"><i class="fas fa-user"></i> Personal Information</div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg_name">Full Name *</label>
+            <div class="input-wrapper">
+              <i class="fas fa-user input-icon"></i>
+              <input type="text" id="reg_name" name="name" class="form-input" placeholder="e.g. Ramesh Kumar" required />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="reg_age">Age *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-cake-candles input-icon"></i>
+                <input type="number" id="reg_age" name="age" class="form-input" placeholder="e.g. 70" min="1" max="120" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg_gender">Gender *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-venus-mars input-icon"></i>
+                <select id="reg_gender" name="gender" class="form-input form-select" required>
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="reg_phone">Mobile Number *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-phone input-icon"></i>
+                <input type="tel" id="reg_phone" name="phone" class="form-input" placeholder="10-digit mobile number" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg_blood">Blood Group</label>
+              <div class="input-wrapper">
+                <i class="fas fa-droplet input-icon"></i>
+                <select id="reg_blood" name="blood_group" class="form-input form-select">
+                  <option value="">Select Blood Group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg_address">Residential Address</label>
+            <div class="input-wrapper">
+              <i class="fas fa-location-dot input-icon"></i>
+              <input type="text" id="reg_address" name="address" class="form-input" placeholder="Full home address" />
+            </div>
+          </div>
+
+          <!-- Emergency Contact Section -->
+          <div class="form-section-label"><i class="fas fa-phone-volume"></i> Emergency Contact</div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="reg_em_name">Contact Person Name</label>
+              <div class="input-wrapper">
+                <i class="fas fa-user-shield input-icon"></i>
+                <input type="text" id="reg_em_name" name="emergency_name" class="form-input" placeholder="e.g. Rohit (Son)" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg_em_phone">Contact Phone</label>
+              <div class="input-wrapper">
+                <i class="fas fa-phone-flip input-icon"></i>
+                <input type="tel" id="reg_em_phone" name="emergency_phone" class="form-input" placeholder="Emergency contact phone" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Section -->
+          <div class="form-section-label"><i class="fas fa-lock"></i> Account Credentials</div>
+
+          <div class="form-group">
+            <label class="form-label" for="reg_email">Email Address *</label>
+            <div class="input-wrapper">
+              <i class="fas fa-envelope input-icon"></i>
+              <input type="email" id="reg_email" name="email" class="form-input" placeholder="you@example.com" required />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="reg_password">Password *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-lock input-icon"></i>
+                <input type="password" id="reg_password" name="password" class="form-input" placeholder="Min. 6 characters" required />
+                <i class="fas fa-eye input-toggle" onclick="togglePassword('reg_password', this)"></i>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg_confirm_password">Confirm Password *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-lock input-icon"></i>
+                <input type="password" id="reg_confirm_password" name="confirm_password" class="form-input" placeholder="Repeat password" required />
+                <i class="fas fa-eye input-toggle" onclick="togglePassword('reg_confirm_password', this)"></i>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full btn-lg auth-submit mt-2">
+            <i class="fas fa-user-plus"></i> Create My Account
+          </button>
+        </form>
+
+        <div class="auth-footer mt-4" style="display:flex; flex-direction:column; gap:8px; text-align:center;">
+          <div>Are you a medical doctor? <a href="{% url 'register_doctor' %}?switch=1" style="color:var(--info); font-weight:600;">Register as Doctor</a></div>
+          <div>Already have an account? <a href="{% url 'login' %}">Sign In</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    function togglePassword(inputId, icon) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

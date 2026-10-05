@@ -1,0 +1,249 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Registration — Smart Elderly Care</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.1" />
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}?v=2.1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .input-wrapper {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+    }
+    .input-wrapper .input-icon {
+      position: absolute !important;
+      left: 16px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 20px !important;
+      height: 20px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: var(--text-muted) !important;
+      font-size: 1rem !important;
+      pointer-events: none !important;
+      z-index: 5 !important;
+    }
+    .input-wrapper .form-input {
+      padding-left: 54px !important;
+    }
+    .input-wrapper .input-toggle {
+      position: absolute !important;
+      right: 16px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 24px !important;
+      height: 24px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: var(--text-muted) !important;
+      cursor: pointer !important;
+      font-size: 1rem !important;
+      z-index: 5 !important;
+    }
+    .input-wrapper input[type="password"] {
+      padding-right: 52px !important;
+    }
+    .input-wrapper:focus-within .input-icon {
+      color: var(--primary) !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+
+  <div class="auth-page">
+    <div class="auth-left">
+      <div class="auth-brand animate-fadeInUp">
+        <div class="auth-logo" style="background:var(--info); color:white;"><i class="fas fa-user-doctor"></i></div>
+        <h1>Join the Provider<br/>Network</h1>
+        <p>Register as a medical professional to connect with and manage elderly patients on our care platform.</p>
+      </div>
+      
+      <div class="auth-features">
+        <div class="auth-feature-item delay-1">
+          <div class="auth-feature-icon" style="color:var(--info); background:rgba(59,130,246,0.1);"><i class="fas fa-calendar-check"></i></div>
+          <div class="auth-feature-text">
+            <h4>Manage Appointments</h4>
+            <p>Accept/reject requests & track schedule</p>
+          </div>
+        </div>
+        <div class="auth-feature-item delay-2">
+          <div class="auth-feature-icon" style="color:var(--info); background:rgba(59,130,246,0.1);"><i class="fas fa-notes-medical"></i></div>
+          <div class="auth-feature-text">
+            <h4>Consultation & Prescriptions</h4>
+            <p>Add clinical diagnosis & generate medicine plans</p>
+          </div>
+        </div>
+        <div class="auth-feature-item delay-3">
+          <div class="auth-feature-icon" style="color:var(--info); background:rgba(59,130,246,0.1);"><i class="fas fa-hospital-user"></i></div>
+          <div class="auth-feature-text">
+            <h4>Patient History</h4>
+            <p>Review comprehensive medical records</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-right">
+      <div class="auth-form-container" style="max-width: 580px;">
+        <div class="auth-form-header">
+          <h2>Doctor Registration 🩺</h2>
+          <p>Please fill out your clinical credentials. You will be able to sign in immediately upon registration.</p>
+        </div>
+
+        <!-- Role Selection Tabs -->
+        <div style="display:flex; background:rgba(255,255,255,0.06); padding:4px; border-radius:12px; margin: 16px 0 24px 0; border:1px solid var(--bg-glass-border); gap:6px;">
+          <a href="{% url 'register_elderly' %}?switch=1" style="flex:1; text-align:center; padding:10px 14px; border-radius:8px; font-weight:600; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text-muted); transition:all 0.2s;">
+            <i class="fas fa-heart-pulse"></i> Patient / Elderly
+          </a>
+          <a href="{% url 'register_doctor' %}" style="flex:1; text-align:center; padding:10px 14px; border-radius:8px; font-weight:700; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; background:var(--primary); color:white; box-shadow:0 2px 10px var(--primary-glow);">
+            <i class="fas fa-user-doctor"></i> Doctor / Specialist
+          </a>
+        </div>
+
+        {% if messages %}
+          <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast toast-{{ message.tags }}" style="position:static; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'register_doctor' %}">
+          {% csrf_token %}
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Full Name (e.g. Dr. Ramesh)</label>
+              <div class="input-wrapper">
+                <i class="fas fa-user input-icon"></i>
+                <input type="text" name="name" class="form-input" placeholder="Dr. First Last" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Specialization</label>
+              <div class="input-wrapper">
+                <i class="fas fa-stethoscope input-icon"></i>
+                <input type="text" name="specialization" class="form-input" placeholder="e.g. Geriatrician, Cardiologist" required />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Qualification</label>
+              <div class="input-wrapper">
+                <i class="fas fa-graduation-cap input-icon"></i>
+                <input type="text" name="qualification" class="form-input" placeholder="e.g. MBBS, MD" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Years of Experience</label>
+              <div class="input-wrapper">
+                <i class="fas fa-award input-icon"></i>
+                <input type="number" name="experience" class="form-input" placeholder="e.g. 12" min="0" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Contact Phone</label>
+              <div class="input-wrapper">
+                <i class="fas fa-phone input-icon"></i>
+                <input type="tel" name="phone" class="form-input" placeholder="10-digit number" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Consultation Fee (₹ / $)</label>
+              <div class="input-wrapper">
+                <i class="fas fa-indian-rupee-sign input-icon"></i>
+                <input type="number" name="consultation_fee" class="form-input" placeholder="e.g. 500" step="0.01" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Hospital / Clinic Address</label>
+            <div class="input-wrapper">
+              <i class="fas fa-hospital input-icon"></i>
+              <input type="text" name="clinic_address" class="form-input" placeholder="Clinic name and location" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Professional Bio / About</label>
+            <div class="input-wrapper">
+              <textarea name="bio" class="form-input" style="padding:10px; min-height:60px;" placeholder="Brief overview of clinical practice and background..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Address *</label>
+            <div class="input-wrapper">
+              <i class="fas fa-envelope input-icon"></i>
+              <input type="email" name="email" class="form-input" placeholder="doctor@example.com" required />
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Password *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-lock input-icon"></i>
+                <input type="password" id="doc_pw" name="password" class="form-input" placeholder="Min. 6 chars" required />
+                <i class="fas fa-eye input-toggle" onclick="togglePassword('doc_pw', this)"></i>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-lock input-icon"></i>
+                <input type="password" id="doc_cpw" name="confirm_password" class="form-input" placeholder="Repeat password" required />
+                <i class="fas fa-eye input-toggle" onclick="togglePassword('doc_cpw', this)"></i>
+              </div>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-full btn-lg auth-submit mt-2">
+            Submit Application <i class="fas fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <div class="auth-switch mt-4" style="display:flex; flex-direction:column; gap:8px; text-align:center;">
+          <div>Are you registering as a patient/senior? <a href="{% url 'register_elderly' %}?switch=1" style="color:var(--primary); font-weight:600;">Register as Patient</a></div>
+          <div>Already registered? <a href="{% url 'login' %}">Sign In</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword(inputId, icon) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

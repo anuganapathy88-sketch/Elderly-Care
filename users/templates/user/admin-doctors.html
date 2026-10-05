@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Doctors — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .data-table th, .data-table td { padding: 16px; border-bottom: 1px solid var(--bg-glass-border); }
+    .data-table th { font-weight: 600; color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+    .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">Admin</div>
+          <div class="user-email" id="sidebar_user_email">admin@eldercare.com</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="admin-dashboard.html" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="admin-reports.html" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Basic Reports</a>
+        
+        <span class="nav-section-label">Management</span>
+        <a href="admin-users.html" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Users</a>
+        <a href="admin-doctors.html" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Doctors</a>
+        
+        <span class="nav-section-label">System Data</span>
+        <a href="admin-appointments.html" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="admin-records.html" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="sidebar-logout" onclick="Auth.logout()"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>🩺 Manage Doctors</h2>
+            <p>Approve registrations and manage provider access.</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Doctor Name</th>
+                <th>Specialization</th>
+                <th>Hospital / Clinic</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="doctors_tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/storage.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/admin-app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', renderDoctors);
+
+    function renderDoctors() {
+      const doctors = Storage.getDoctors();
+      const tbody = document.getElementById('doctors_tbody');
+      
+      if (!doctors.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No doctors found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = doctors.map(d => {
+        let statusBadge = '';
+        let actions = '';
+        
+        const status = d.status || 'active'; // Legacy seeded doctors are active by default
+        
+        if (status === 'pending') {
+          statusBadge = `<span class="badge badge-warning">Pending Approval</span>`;
+          actions = `
+            <button class="btn btn-sm btn-success" onclick="updateStatus('${d.id}', 'active')"><i class="fas fa-check"></i> Approve</button>
+            <button class="btn btn-sm btn-danger" onclick="updateStatus('${d.id}', 'rejected')"><i class="fas fa-times"></i> Reject</button>
+          `;
+        } else if (status === 'active') {
+          statusBadge = `<span class="badge badge-success">Active</span>`;
+          actions = `<button class="btn btn-sm btn-ghost" onclick="updateStatus('${d.id}', 'inactive')">Deactivate</button>`;
+        } else {
+          statusBadge = `<span class="badge badge-danger">Inactive / Rejected</span>`;
+          actions = `<button class="btn btn-sm btn-primary" onclick="updateStatus('${d.id}', 'active')">Re-activate</button>`;
+        }
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${d.name}</td>
+            <td style="color:var(--text-secondary);">${d.specialization}</td>
+            <td style="color:var(--text-secondary);">${d.hospital}</td>
+            <td>${statusBadge}</td>
+            <td style="text-align:right; display:flex; gap:8px; justify-content:flex-end;">${actions}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updateStatus(id, status) {
+      Storage.updateDoctorStatus(id, status);
+      Auth.showToast(`Doctor status updated to ${status}.`);
+      renderDoctors();
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

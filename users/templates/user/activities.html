@@ -1,0 +1,248 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activities — Smart Elderly Care</title>
+  <meta name="description" content="Track daily physical, mental, and social activities for healthy aging." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.4" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .sidebar-brand *, .sidebar-nav .nav-link * {
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text"><h3>ElderCare</h3><span>Smart Care System</span></div>
+        </a>
+      </div>
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email }}</div>
+        </div>
+      </a>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_prescriptions' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medications</a>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'elderly_activities' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-person-walking"></i></span>Activities</a>
+        <span class="nav-section-label">Health</span>
+        <a href="{% url 'doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'elderly_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-phone-volume"></i></span>Emergency Contacts</a>
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>🏃 Activities</h2>
+            <p>Track daily physical &amp; mental activities</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="Activities.openModal()">
+            <i class="fas fa-plus"></i> <span class="hide-mobile">Add Activity</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Stats -->
+        <div class="module-stats">
+          <div class="module-stat delay-1">
+            <div class="ms-value" id="act_total" style="color:var(--primary)">0</div>
+            <div class="ms-label">Total</div>
+          </div>
+          <div class="module-stat delay-2">
+            <div class="ms-value" id="act_done" style="color:var(--success)">0</div>
+            <div class="ms-label">Done Today</div>
+          </div>
+          <div class="module-stat delay-3">
+            <div class="ms-value" id="act_pending" style="color:var(--warning)">0</div>
+            <div class="ms-label">Pending</div>
+          </div>
+          <div class="module-stat delay-4">
+            <div class="ms-value" id="act_streak" style="color:var(--accent)">0 days</div>
+            <div class="ms-label">🔥 Streak</div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="act_search" placeholder="Search activities…" oninput="Activities.renderList(undefined, this.value)" />
+          </div>
+          <button class="filter-btn active" onclick="setActFilter('all', this)"><i class="fas fa-list"></i> All</button>
+          <button class="filter-btn" onclick="setActFilter('pending', this)"><i class="fas fa-clock"></i> Pending</button>
+          <button class="filter-btn" onclick="setActFilter('done', this)"><i class="fas fa-check"></i> Done</button>
+          <button class="filter-btn" onclick="setActFilter('physical', this)"><i class="fas fa-person-running"></i> Physical</button>
+          <button class="filter-btn" onclick="setActFilter('mental', this)"><i class="fas fa-brain"></i> Mental</button>
+          <button class="filter-btn" onclick="setActFilter('social', this)"><i class="fas fa-people-group"></i> Social</button>
+        </div>
+
+        <!-- List -->
+        <div class="items-grid items-grid-2col" id="act_list"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ ADD/EDIT MODAL ══ -->
+  <div class="modal-overlay" id="act_modal" onclick="if(event.target===this)Activities.closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <div style="width:36px;height:36px;background:rgba(245,158,11,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--warning);">
+            <i class="fas fa-person-running"></i>
+          </div>
+          <h3 id="act_modal_title">Add Activity</h3>
+        </div>
+        <button class="modal-close" onclick="Activities.closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form id="act_form" onsubmit="Activities.saveForm(event)" novalidate>
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label class="form-label" for="act_name">Activity Name *</label>
+            <div class="input-wrapper">
+              <i class="fas fa-star input-icon"></i>
+              <input type="text" id="act_name" class="form-input" placeholder="e.g. Morning Walk" required />
+            </div>
+            <span class="field-error" id="act_name_error"><i class="fas fa-circle-exclamation"></i></span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="act_type">Activity Type *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-tag input-icon"></i>
+                <select id="act_type" class="form-input form-select" required>
+                  <option value="">Select type</option>
+                  <option value="physical">Physical</option>
+                  <option value="mental">Mental / Cognitive</option>
+                  <option value="social">Social</option>
+                  <option value="medical">Medical / Therapy</option>
+                  <option value="hobby">Hobby / Creative</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <span class="field-error" id="act_type_error"><i class="fas fa-circle-exclamation"></i></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="act_freq">Frequency</label>
+              <div class="input-wrapper">
+                <i class="fas fa-repeat input-icon"></i>
+                <select id="act_freq" class="form-input form-select">
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="act_time">Preferred Time</label>
+              <div class="input-wrapper">
+                <i class="fas fa-clock input-icon"></i>
+                <input type="time" id="act_time" class="form-input" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="act_duration">Duration (mins)</label>
+              <div class="input-wrapper">
+                <i class="fas fa-hourglass-half input-icon"></i>
+                <input type="number" id="act_duration" class="form-input" placeholder="e.g. 30" min="1" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="act_notes">Notes</label>
+            <textarea id="act_notes" class="form-input form-textarea" placeholder="Any special instructions or goals…" style="padding:12px 14px;"></textarea>
+          </div>
+
+          <label class="toggle-switch">
+            <input type="checkbox" id="act_status" class="toggle-input" checked />
+            <span class="toggle-track"></span>
+            Active activity
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="Activities.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Activity</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ CONFIRM DELETE ══ -->
+  <div class="modal-overlay" id="confirm_act_modal">
+    <div class="modal confirm-modal">
+      <div class="modal-body">
+        <div class="confirm-icon"><i class="fas fa-trash"></i></div>
+        <h3>Delete Activity?</h3>
+        <p>Delete <strong id="delete_act_name"></strong>? This will also clear all completion history.</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:16px;">
+        <button class="btn btn-ghost" onclick="Activities.cancelDelete()">Cancel</button>
+        <button class="btn btn-danger" onclick="Activities.doDelete()"><i class="fas fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/storage.js' %}"></script>
+  <script src="{% static 'js/auth.js' %}"></script>
+  <script src="{% static 'js/activities.js' %}"></script>
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => Activities.renderList());
+
+    function setActFilter(filter, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Activities.renderList(filter, document.getElementById('act_search')?.value || '');
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

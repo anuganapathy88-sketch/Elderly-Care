@@ -1,0 +1,1813 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard — Smart Elderly Care</title>
+
+    <meta name="description"
+          content="Smart Elderly Care dashboard for managing health, medications and appointments.">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modules.css' %}">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+<div class="bg-gradient-mesh"></div>
+<div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+<div class="app-layout">
+
+    <!-- =========================================================
+         SIDEBAR
+    ========================================================== -->
+
+    <aside class="sidebar" id="sidebar">
+
+        <!-- Brand -->
+        <div class="sidebar-header">
+
+            <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+
+                <div class="sidebar-logo">
+                    <i class="fas fa-heart-pulse"></i>
+                </div>
+
+                <div class="sidebar-brand-text">
+                    <h3>ElderCare</h3>
+                    <span>Smart Care System</span>
+                </div>
+
+            </a>
+
+        </div>
+
+
+        <!-- User Information -->
+        <a href="{% url 'elderly_profile' %}"
+           class="sidebar-user">
+
+            <div class="avatar"
+                 style="width:42px;height:42px;font-size:0.9rem;">
+
+                {% if profile %}
+                    {{ profile.user.first_name|first|upper }}
+                {% else %}
+                    {{ request.user.username|first|upper }}
+                {% endif %}
+
+            </div>
+
+            <div class="sidebar-user-info">
+
+                <div class="user-name">
+
+                    {% if profile %}
+                        {{ profile.user.get_full_name|default:request.user.username }}
+                    {% else %}
+                        {{ request.user.username }}
+                    {% endif %}
+
+                </div>
+
+                <div class="user-email">
+                    {{ request.user.email }}
+                </div>
+
+            </div>
+
+            <i class="fas fa-chevron-right"
+               style="color:var(--text-muted);font-size:0.75rem;">
+            </i>
+
+        </a>
+
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+
+            <span class="nav-section-label">
+                Main
+            </span>
+
+
+            <!-- Dashboard -->
+            <a href="{% url 'elderly_dashboard' %}"
+               class="nav-link active">
+
+                <span class="nav-icon">
+                    <i class="fas fa-gauge-high"></i>
+                </span>
+
+                Dashboard
+
+            </a>
+
+
+            <!-- Profile -->
+            <a href="{% url 'elderly_profile' %}"
+               class="nav-link">
+
+                <span class="nav-icon">
+                    <i class="fas fa-user-circle"></i>
+                </span>
+
+                My Profile
+
+            </a>
+
+
+            <span class="nav-section-label">
+                Care Management
+            </span>
+
+
+            <!-- Medications -->
+            <a href="{% url 'elderly_prescriptions' %}"
+               class="nav-link">
+
+                <span class="nav-icon">
+                    <i class="fas fa-pills"></i>
+                </span>
+
+                Medications
+
+                <span class="nav-badge">
+                    {{ stats.active_prescriptions }}
+                </span>
+
+            </a>
+
+
+            <!-- Appointments -->
+            <a href="{% url 'elderly_appointments' %}"
+               class="nav-link">
+
+                <span class="nav-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </span>
+
+                Appointments
+
+            </a>
+
+
+            <!-- Doctors -->
+            <a href="{% url 'doctors' %}"
+               class="nav-link">
+
+                <span class="nav-icon">
+                    <i class="fas fa-user-doctor"></i>
+                </span>
+
+                Find a Doctor
+
+            </a>
+
+
+            <span class="nav-section-label">
+                Health
+            </span>
+
+
+            <!-- Medical Records -->
+            <a href="{% url 'elderly_medical' %}"
+               class="nav-link">
+
+                <span class="nav-icon">
+                    <i class="fas fa-file-medical"></i>
+                </span>
+
+                Health Records
+
+            </a>
+
+
+            <!-- Notifications -->
+            <a href="#"
+               class="nav-link">
+
+                <span class="nav-icon">
+                    <i class="fas fa-bell"></i>
+                </span>
+
+                Notifications
+
+                {% if stats.unread_notifications > 0 %}
+                    <span class="nav-badge">
+                        {{ stats.unread_notifications }}
+                    </span>
+                {% endif %}
+
+            </a>
+
+
+            <span class="nav-section-label">
+                Account
+            </span>
+
+
+            <!-- Change Password -->
+            <a href="{% url 'change_password' %}"
+               class="nav-link">
+
+                <span class="nav-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </span>
+
+                Change Password
+
+            </a>
+
+        </nav>
+
+
+        <!-- Logout -->
+        <div class="sidebar-footer">
+
+            <form method="post"
+                  action="{% url 'logout' %}">
+
+                {% csrf_token %}
+
+                <button type="submit"
+                        class="sidebar-logout">
+
+                    <span class="nav-icon">
+                        <i class="fas fa-right-from-bracket"></i>
+                    </span>
+
+                    Sign Out
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =========================================================
+         MAIN CONTENT
+    ========================================================== -->
+
+    <main class="main-content">
+
+
+        <!-- Topbar -->
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <button class="topbar-btn"
+                        id="sidebar_toggle"
+                        aria-label="Toggle sidebar">
+
+                    <i class="fas fa-bars"></i>
+
+                </button>
+
+                <div class="topbar-title">
+
+                    <h2>Dashboard</h2>
+
+                    <p id="topbar_date">
+                        Today
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="topbar-right">
+
+                <!-- Notifications -->
+                <a href="#"
+                   class="topbar-btn"
+                   title="Notifications">
+
+                    <i class="fas fa-bell"></i>
+
+                    {% if stats.unread_notifications > 0 %}
+                        <span class="notif-dot"></span>
+                    {% endif %}
+
+                </a>
+
+
+                <!-- Profile -->
+                <a href="{% url 'elderly_profile' %}"
+                   class="topbar-btn"
+                   title="Profile">
+
+                    <i class="fas fa-user-circle"></i>
+
+                </a>
+
+            </div>
+
+        </header>
+
+
+        <!-- =====================================================
+             PAGE CONTENT
+        ====================================================== -->
+
+        <div class="page-content">
+
+
+            <!-- Welcome Banner -->
+            <div class="welcome-banner">
+
+                <div class="welcome-text">
+
+                    <h2 id="welcome_greeting">
+
+                        Good morning,
+                        {% if profile %}
+                            {{ profile.user.first_name|default:request.user.username }}
+                        {% else %}
+                            {{ request.user.username }}
+                        {% endif %}
+                        🌟
+
+                    </h2>
+
+                    <p>
+                        Here's your care summary for today.
+                        Stay healthy and take care!
+                    </p>
+
+                </div>
+
+                <div class="welcome-icon">
+                    👴
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 STATISTICS
+            ================================================== -->
+
+            <div class="stats-grid">
+
+
+                <!-- Appointments -->
+                <a href="{% url 'elderly_appointments' %}" class="stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+
+                    <div class="stat-icon stat-icon-blue">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+
+                    <div class="stat-info">
+
+                        <div class="stat-label">
+                            Appointments
+                        </div>
+
+                        <div class="stat-value">
+                            {{ stats.total_appointments }}
+                        </div>
+
+                        <div class="stat-sub">
+                            Total appointments
+                        </div>
+
+                    </div>
+
+                </a>
+
+
+                <!-- Prescriptions -->
+                <a href="{% url 'elderly_prescriptions' %}" class="stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+
+                    <div class="stat-icon stat-icon-green">
+                        <i class="fas fa-pills"></i>
+                    </div>
+
+                    <div class="stat-info">
+
+                        <div class="stat-label">
+                            Medications
+                        </div>
+
+                        <div class="stat-value">
+                            {{ stats.active_prescriptions }}
+                        </div>
+
+                        <div class="stat-sub">
+                            Active prescriptions
+                        </div>
+
+                    </div>
+
+                </a>
+
+
+                <!-- Medical Records -->
+                <a href="{% url 'elderly_medical' %}"
+                   id="stat_card_health_records"
+                   class="stat-card"
+                   style="text-decoration:none;color:inherit;cursor:pointer;">
+
+                    <div class="stat-icon stat-icon-amber">
+                        <i class="fas fa-file-medical"></i>
+                    </div>
+
+                    <div class="stat-info">
+
+                        <div class="stat-label">
+                            Health Records
+                        </div>
+
+                        <div class="stat-value">
+                            {{ stats.medical_records }}
+                        </div>
+
+                        <div class="stat-sub">
+                            Medical records
+                        </div>
+
+                    </div>
+
+                </a>
+
+
+                <!-- Notifications -->
+                <a href="{% url 'notifications' %}" class="stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+
+                    <div class="stat-icon stat-icon-red">
+                        <i class="fas fa-bell"></i>
+                    </div>
+
+                    <div class="stat-info">
+
+                        <div class="stat-label">
+                            Notifications
+                        </div>
+
+                        <div class="stat-value">
+                            {{ stats.unread_notifications }}
+                        </div>
+
+                        <div class="stat-sub">
+                            Unread notifications
+                        </div>
+
+                    </div>
+
+                </a>
+
+            </div>
+
+
+            <!-- =================================================
+                 MAIN GRID
+            ================================================== -->
+
+            <div class="dashboard-grid">
+
+
+                <!-- =================================================
+                     QUICK ACTIONS
+                ================================================== -->
+
+                <div class="card animate-fadeInUp">
+
+                    <h3 class="mb-4"
+                        style="display:flex;align-items:center;gap:10px;">
+
+                        <i class="fas fa-bolt"
+                           style="color:var(--primary)">
+                        </i>
+
+                        Quick Actions
+
+                    </h3>
+
+
+                    <div class="quick-actions">
+
+
+                        <!-- Edit Profile -->
+                        <a href="{% url 'elderly_profile' %}"
+                           id="qa_profile_btn"
+                           class="quick-action-btn">
+
+                            <div class="quick-action-icon stat-icon-green">
+                                <i class="fas fa-user-pen"></i>
+                            </div>
+
+                            <span>Edit Profile</span>
+
+                        </a>
+
+
+                        <!-- Add Medication -->
+                        <a href="javascript:void(0)"
+                           id="qa_add_medication_btn"
+                           class="quick-action-btn">
+
+                            <div class="quick-action-icon stat-icon-blue">
+                                <i class="fas fa-pills"></i>
+                            </div>
+
+                            <span>Add Medication</span>
+
+                        </a>
+
+
+                        <!-- Book Appointment -->
+                        <a href="{% url 'doctors' %}"
+                           id="qa_book_appointment_btn"
+                           class="quick-action-btn">
+
+                            <div class="quick-action-icon stat-icon-amber">
+                                <i class="fas fa-calendar-plus"></i>
+                            </div>
+
+                            <span>Book Appointment</span>
+
+                        </a>
+
+
+                        <!-- Medical / Health Records -->
+                        <a href="{% url 'elderly_medical' %}"
+                           id="qa_health_records_btn"
+                           class="quick-action-btn">
+
+                            <div class="quick-action-icon stat-icon-purple">
+                                <i class="fas fa-file-medical"></i>
+                            </div>
+
+                            <span>Health Records</span>
+
+                        </a>
+
+
+                        <!-- Find Doctor -->
+                        <a href="{% url 'doctors' %}"
+                           id="qa_find_doctor_btn"
+                           class="quick-action-btn">
+
+                            <div class="quick-action-icon stat-icon-red">
+                                <i class="fas fa-user-doctor"></i>
+                            </div>
+
+                            <span>Find Doctor</span>
+
+                        </a>
+
+
+                        <!-- Security -->
+                        <a href="{% url 'change_password' %}"
+                           id="qa_security_btn"
+                           class="quick-action-btn">
+
+                            <div class="quick-action-icon"
+                                 style="background:rgba(100,116,139,0.15);
+                                        color:var(--text-secondary);">
+
+                                <i class="fas fa-shield-alt"></i>
+
+                            </div>
+
+                            <span>Security</span>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     PROFILE SUMMARY
+                ================================================== -->
+
+                <div class="card animate-fadeInUp">
+
+                    <h3 class="mb-4"
+                        style="display:flex;align-items:center;gap:10px;">
+
+                        <i class="fas fa-id-card"
+                           style="color:var(--primary)">
+                        </i>
+
+                        Profile Summary
+
+                    </h3>
+
+
+                    <div style="display:flex;
+                                flex-direction:column;
+                                gap:14px;">
+
+
+                        <!-- Profile -->
+                        <div style="display:flex;
+                                    align-items:center;
+                                    gap:12px;">
+
+                            <div class="avatar"
+                                 style="width:54px;
+                                        height:54px;
+                                        font-size:1.1rem;">
+
+                                {% if profile %}
+                                    {{ profile.user.first_name|first|upper }}
+                                {% else %}
+                                    {{ request.user.username|first|upper }}
+                                {% endif %}
+
+                            </div>
+
+
+                            <div>
+
+                                <div style="font-weight:700;
+                                            font-size:0.95rem;">
+
+                                    {% if profile %}
+                                        {{ profile.user.get_full_name|default:request.user.username }}
+                                    {% else %}
+                                        {{ request.user.username }}
+                                    {% endif %}
+
+                                </div>
+
+                                <div style="font-size:0.8rem;
+                                            color:var(--text-muted);">
+
+                                    {% if profile %}
+                                        {% if profile.age %}
+                                            {{ profile.age }} years
+                                        {% endif %}
+
+                                        {% if profile.gender %}
+                                            · {{ profile.gender }}
+                                        {% endif %}
+                                    {% else %}
+                                        Elderly User
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="divider"></div>
+
+
+                        <!-- Profile Details -->
+                        <div style="display:grid;
+                                    grid-template-columns:1fr 1fr;
+                                    gap:12px;">
+
+
+                            <!-- Blood Group -->
+                            <div>
+
+                                <div class="text-xs text-muted mb-1">
+                                    Blood Group
+                                </div>
+
+                                <div style="font-weight:700;
+                                            color:var(--danger);">
+
+                                    {% if profile.blood_group %}
+                                        {{ profile.blood_group }}
+                                    {% else %}
+                                        Not set
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Phone -->
+                            <div>
+
+                                <div class="text-xs text-muted mb-1">
+                                    Phone
+                                </div>
+
+                                <div style="font-weight:600;
+                                            font-size:0.85rem;">
+
+                                    {% if profile.phone %}
+                                        {{ profile.phone }}
+                                    {% else %}
+                                        Not set
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Emergency Contact -->
+                            <div style="grid-column:1/-1;">
+
+                                <div class="text-xs text-muted mb-1">
+                                    Emergency Contact
+                                </div>
+
+                                <div style="font-weight:600;
+                                            font-size:0.85rem;
+                                            color:var(--danger);">
+
+                                    {% if profile.emergency_contact_name %}
+                                        {{ profile.emergency_contact_name }}
+
+                                        {% if profile.emergency_contact_phone %}
+                                            · {{ profile.emergency_contact_phone }}
+                                        {% endif %}
+                                    {% else %}
+                                        Not set
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Edit Profile -->
+                        <a href="{% url 'elderly_profile' %}"
+                           class="btn btn-outline btn-sm btn-full">
+
+                            <i class="fas fa-pen"></i>
+
+                            Edit Profile
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     UPCOMING APPOINTMENT
+                ================================================== -->
+
+                <div class="card animate-fadeInUp card-full">
+
+                    <h3 class="mb-4"
+                        style="display:flex;align-items:center;gap:10px;">
+
+                        <i class="fas fa-calendar-check"
+                           style="color:var(--primary)">
+                        </i>
+
+                        Upcoming Appointment
+
+                    </h3>
+
+
+                    {% if next_appointment %}
+
+                        <div style="display:flex;
+                                    align-items:center;
+                                    gap:14px;
+                                    padding:16px;
+                                    background:var(--bg-glass);
+                                    border:1px solid var(--bg-glass-border);
+                                    border-radius:var(--radius-md);">
+
+
+                            <!-- Icon -->
+                            <div class="stat-icon stat-icon-blue"
+                                 style="width:48px;
+                                        height:48px;
+                                        font-size:1rem;
+                                        flex-shrink:0;">
+
+                                <i class="fas fa-calendar-check"></i>
+
+                            </div>
+
+
+                            <!-- Appointment Details -->
+                            <div style="flex:1;">
+
+                                <div style="font-weight:700;
+                                            font-size:0.95rem;">
+
+                                    Doctor Appointment
+
+                                </div>
+
+                                <div style="font-size:0.8rem;
+                                            color:var(--text-muted);
+                                            margin-top:4px;">
+
+                                    {{ next_appointment.appointment_date }}
+
+                                    {% if next_appointment.appointment_time %}
+                                        · {{ next_appointment.appointment_time }}
+                                    {% endif %}
+
+                                </div>
+
+                                {% if next_appointment.reason %}
+
+                                    <div style="font-size:0.78rem;
+                                                color:var(--text-muted);
+                                                margin-top:4px;">
+
+                                        {{ next_appointment.reason }}
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+
+                            <!-- Status -->
+                            <span class="badge badge-info">
+
+                                {{ next_appointment.status|title }}
+
+                            </span>
+
+                        </div>
+
+                    {% else %}
+
+                        <!-- No Appointment -->
+                        <div style="text-align:center;
+                                    padding:30px 20px;">
+
+                            <div class="stat-icon stat-icon-blue"
+                                 style="margin:0 auto 15px;">
+
+                                <i class="fas fa-calendar-xmark"></i>
+
+                            </div>
+
+                            <h4>
+                                No Upcoming Appointment
+                            </h4>
+
+                            <p style="color:var(--text-muted);
+                                      margin:8px 0 18px;">
+
+                                You don't have any upcoming appointments.
+
+                            </p>
+
+                            <a href="{% url 'doctors' %}"
+                               class="btn btn-primary">
+
+                                <i class="fas fa-calendar-plus"></i>
+
+                                Book Appointment
+
+                            </a>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <!-- Book Appointment Button -->
+                    {% if next_appointment %}
+
+                        <div style="margin-top:15px;
+                                    text-align:right;">
+
+                            <a href="{% url 'doctors' %}"
+                               class="btn btn-primary btn-sm">
+
+                                <i class="fas fa-calendar-plus"></i>
+
+                                Book Another Appointment
+
+                            </a>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- =================================================
+                     RECENT APPOINTMENTS
+                ================================================== -->
+
+                <div class="card animate-fadeInUp">
+
+                    <h3 class="mb-4"
+                        style="display:flex;
+                               align-items:center;
+                               gap:10px;">
+
+                        <i class="fas fa-calendar"
+                           style="color:var(--primary)">
+                        </i>
+
+                        Recent Appointments
+
+                    </h3>
+
+
+                    {% if recent_appointments %}
+
+                        <div style="display:flex;
+                                    flex-direction:column;
+                                    gap:10px;">
+
+                            {% for appointment in recent_appointments %}
+
+                                <div style="padding:12px;
+                                            background:var(--bg-glass);
+                                            border-radius:var(--radius-md);">
+
+                                    <div style="font-weight:600;
+                                                font-size:0.85rem;">
+
+                                        {{ appointment.appointment_date }}
+
+                                    </div>
+
+                                    <div style="font-size:0.75rem;
+                                                color:var(--text-muted);">
+
+                                        {% if appointment.appointment_time %}
+                                            {{ appointment.appointment_time }}
+                                        {% endif %}
+
+                                        {% if appointment.reason %}
+                                            · {{ appointment.reason }}
+                                        {% endif %}
+
+                                    </div>
+
+                                    <span class="badge badge-info"
+                                          style="margin-top:6px;">
+
+                                        {{ appointment.status|title }}
+
+                                    </span>
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% else %}
+
+                        <p style="color:var(--text-muted);">
+                            No appointments found.
+                        </p>
+
+                    {% endif %}
+
+
+                    <a href="{% url 'elderly_appointments' %}"
+                       id="btn_view_all_appointments"
+                       class="btn btn-outline btn-sm btn-full"
+                       style="margin-top:15px;display:block;text-align:center;">
+
+                        <i class="fas fa-calendar-check"></i>
+                        View All Appointments
+
+                    </a>
+
+                </div>
+
+
+                <!-- =================================================
+                     RECENT MEDICATIONS / PRESCRIPTIONS
+                ================================================== -->
+
+                <div class="card animate-fadeInUp">
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                        <h3 style="display:flex;align-items:center;gap:10px;margin:0;">
+                            <i class="fas fa-pills" style="color:var(--primary)"></i>
+                            Medications
+                            {% if total_active_meds %}
+                                <span class="badge badge-info" style="font-size:0.75rem;padding:2px 8px;border-radius:12px;">{{ total_active_meds }}</span>
+                            {% endif %}
+                        </h3>
+
+                        <button type="button"
+                                onclick="openAddMedModal()"
+                                class="btn btn-primary btn-xs"
+                                id="btn_card_add_med"
+                                style="display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;padding:6px 14px;border-radius:20px;cursor:pointer;">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+
+
+                    {% if active_medicines %}
+
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+
+                            {% for med in active_medicines %}
+
+                                <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-glass);border:1px solid var(--bg-glass-border);border-radius:var(--radius-md);transition:all 0.2s ease;">
+
+                                    <div class="stat-icon stat-icon-green" style="width:38px;height:38px;font-size:0.95rem;flex-shrink:0;">
+                                        <i class="fas fa-capsules"></i>
+                                    </div>
+
+                                    <div style="flex:1;min-width:0;">
+
+                                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                            <span style="font-weight:700;font-size:0.92rem;color:var(--text-main);">
+                                                {{ med.medicine_name }}
+                                            </span>
+                                            {% if med.dosage %}
+                                                <span class="badge badge-info" style="font-size:0.72rem;padding:1px 6px;">
+                                                    {{ med.dosage }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div style="font-size:0.76rem;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                            <span>
+                                                <i class="fas fa-repeat" style="color:var(--primary);font-size:0.7rem;"></i> {{ med.frequency }}
+                                            </span>
+                                            {% if med.duration %}
+                                                <span>· <i class="fas fa-clock" style="font-size:0.7rem;"></i> {{ med.duration }}</span>
+                                            {% endif %}
+                                            {% if med.prescription.doctor %}
+                                                <span>· Dr. {{ med.prescription.doctor.doctor_profile.full_name|default:med.prescription.doctor.get_full_name }}</span>
+                                            {% else %}
+                                                <span>· Self-Prescribed</span>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if med.instructions %}
+                                            <div style="font-size:0.73rem;color:var(--text-secondary);margin-top:4px;">
+                                                <i class="fas fa-circle-info" style="color:var(--accent);font-size:0.7rem;"></i> {{ med.instructions }}
+                                            </div>
+                                        {% endif %}
+
+                                    </div>
+
+                                    <form method="POST" action="{% url 'elderly_delete_prescription' med.prescription.id %}" onsubmit="return confirm('Remove {{ med.medicine_name }} from your medications?');" style="margin:0;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'elderly_dashboard' %}">
+                                        <button type="submit" class="icon-btn icon-btn-danger" title="Remove {{ med.medicine_name }}" style="border:none;background:rgba(239,68,68,0.1);color:var(--danger);width:30px;height:30px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                                            <i class="fas fa-trash-can" style="font-size:0.75rem;"></i>
+                                        </button>
+                                    </form>
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% elif recent_prescriptions %}
+
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            {% for prescription in recent_prescriptions %}
+                                <div style="padding:12px;background:var(--bg-glass);border-radius:var(--radius-md);">
+                                    <div style="font-weight:600;font-size:0.85rem;">
+                                        Prescription #{{ prescription.id }}
+                                    </div>
+                                    <div style="font-size:0.75rem;color:var(--text-muted);">
+                                        {% if prescription.doctor %}
+                                            Dr. {{ prescription.doctor.get_full_name }}
+                                        {% else %}
+                                            Self-Logged Record
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                    {% else %}
+
+                        <div style="text-align:center;padding:25px 16px;">
+
+                            <div class="stat-icon stat-icon-green" style="margin:0 auto 12px;width:50px;height:50px;font-size:1.3rem;">
+                                <i class="fas fa-pills"></i>
+                            </div>
+
+                            <h4 style="margin-bottom:6px;font-size:0.98rem;">
+                                No Medications Logged
+                            </h4>
+
+                            <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:16px;">
+                                Easily record your daily medications, timings, and dosages.
+                            </p>
+
+                            <button type="button"
+                                    onclick="openAddMedModal()"
+                                    class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Add Your First Medication
+                            </button>
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <div style="display:flex;gap:10px;margin-top:16px;">
+                        <button type="button"
+                                onclick="openAddMedModal()"
+                                class="btn btn-primary btn-sm"
+                                style="flex:1;">
+                            <i class="fas fa-plus"></i> Add Medication
+                        </button>
+
+                        <a href="{% url 'elderly_prescriptions' %}"
+                           id="btn_view_all_medications"
+                           class="btn btn-outline btn-sm"
+                           style="flex:1;text-align:center;">
+                            <i class="fas fa-pills"></i> View All
+                        </a>
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     MEDICAL RECORDS
+                ================================================== -->
+
+                <div class="card animate-fadeInUp card-full">
+
+                    <h3 class="mb-4"
+                        style="display:flex;
+                               align-items:center;
+                               gap:10px;">
+
+                        <i class="fas fa-file-medical"
+                           style="color:var(--primary)">
+                        </i>
+
+                        Recent Health Records
+
+                    </h3>
+
+
+                    {% if recent_records %}
+
+                        <div style="display:flex;
+                                    flex-direction:column;
+                                    gap:10px;">
+
+                            {% for record in recent_records %}
+
+                                <div style="display:flex;
+                                            align-items:center;
+                                            gap:14px;
+                                            padding:14px;
+                                            background:var(--bg-glass);
+                                            border-radius:var(--radius-md);">
+
+                                    <div class="stat-icon stat-icon-green"
+                                         style="width:40px;
+                                                height:40px;
+                                                flex-shrink:0;">
+
+                                        <i class="fas fa-file-medical"></i>
+
+                                    </div>
+
+                                    <div style="flex:1;">
+
+                                        <div style="font-weight:600;
+                                                    font-size:0.88rem;">
+
+                                            Medical Record
+
+                                        </div>
+
+                                        <div style="font-size:0.75rem;
+                                                    color:var(--text-muted);">
+
+                                            {{ record.created_at|date:"d M Y" }}
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% else %}
+
+                        <p style="color:var(--text-muted);">
+
+                            No medical records available.
+
+                        </p>
+
+                    {% endif %}
+
+
+                    <a href="{% url 'elderly_medical' %}"
+                       id="btn_view_health_records"
+                       class="btn btn-outline btn-sm btn-full"
+                       style="margin-top:15px;cursor:pointer;">
+
+                        View Health Records
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =============================================================
+     JAVASCRIPT
+============================================================= -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ---------------------------------------------------------
+       Current Date
+    --------------------------------------------------------- */
+
+    const dateElement =
+        document.getElementById("topbar_date");
+
+    if (dateElement) {
+
+        const today = new Date();
+
+        dateElement.textContent =
+            today.toLocaleDateString("en-IN", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            });
+
+    }
+
+
+    /* ---------------------------------------------------------
+       Greeting
+    --------------------------------------------------------- */
+
+    const greetingElement =
+        document.getElementById("welcome_greeting");
+
+    if (greetingElement) {
+
+        const hour = new Date().getHours();
+
+        let greeting = "Good evening";
+
+        if (hour < 12) {
+
+            greeting = "Good morning";
+
+        } else if (hour < 17) {
+
+            greeting = "Good afternoon";
+
+        }
+
+        const name =
+            "{{ request.user.first_name|escapejs }}";
+
+        greetingElement.textContent =
+            greeting +
+            ", " +
+            (name || "there") +
+            "! 🌟";
+
+    }
+
+
+    /* ---------------------------------------------------------
+       Sidebar Toggle
+    --------------------------------------------------------- */
+
+    const toggle =
+        document.getElementById("sidebar_toggle");
+
+    const sidebar =
+        document.getElementById("sidebar");
+
+    const overlay =
+        document.getElementById("sidebar_overlay");
+
+
+    if (toggle && sidebar) {
+
+        toggle.addEventListener("click", function () {
+
+            sidebar.classList.toggle("open");
+
+            if (overlay) {
+
+                overlay.classList.toggle("active");
+
+            }
+
+        });
+
+    }
+
+
+    if (overlay && sidebar) {
+
+        overlay.addEventListener("click", function () {
+
+            sidebar.classList.remove("open");
+
+            overlay.classList.remove("active");
+
+        });
+
+    }
+
+});
+
+/* ---------------------------------------------------------
+   Add Medication Modal Logic
+--------------------------------------------------------- */
+function openAddMedModal() {
+    const modal = document.getElementById("add_med_modal");
+    if (modal) {
+        modal.classList.add("open");
+        document.body.style.overflow = "hidden";
+        setTimeout(() => {
+            const input = document.getElementById("med_name");
+            if (input) input.focus();
+        }, 120);
+    }
+}
+
+function closeAddMedModal() {
+    const modal = document.getElementById("add_med_modal");
+    if (modal) {
+        modal.classList.remove("open");
+        document.body.style.overflow = "";
+    }
+}
+
+function setFrequency(freq) {
+    const select = document.getElementById("med_frequency");
+    const customContainer = document.getElementById("custom_frequency_group");
+    const customInput = document.getElementById("custom_frequency_input");
+
+    if (select) {
+        let matched = false;
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === freq) {
+                select.selectedIndex = i;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            select.value = "Custom";
+            if (customInput) customInput.value = freq;
+        }
+    }
+
+    // Update active pill styling
+    document.querySelectorAll(".freq-pill").forEach(pill => {
+        pill.classList.toggle("active", pill.dataset.freq === freq);
+    });
+
+    // Toggle custom container
+    if (freq === "Custom" || (select && select.value === "Custom")) {
+        if (customContainer) customContainer.style.display = "block";
+        if (customInput) customInput.focus();
+    } else {
+        if (customContainer) customContainer.style.display = "none";
+    }
+}
+
+function onFrequencySelectChange(selectEl) {
+    if (selectEl) {
+        setFrequency(selectEl.value);
+    }
+}
+
+function quickFillMed(name, dosage, freq, instr) {
+    const nameEl = document.getElementById("med_name");
+    const dosageEl = document.getElementById("med_dosage");
+    const instrEl = document.getElementById("med_instructions");
+
+    if (nameEl) {
+        nameEl.value = name;
+        nameEl.style.borderColor = "";
+    }
+    if (dosageEl) dosageEl.value = dosage;
+    if (instrEl) instrEl.value = instr;
+    if (freq) setFrequency(freq);
+}
+
+// Close on Escape key
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+        closeAddMedModal();
+    }
+});
+
+// Form submission validation
+document.addEventListener("DOMContentLoaded", function() {
+    const medForm = document.getElementById("add_medication_form");
+    if (medForm) {
+        medForm.addEventListener("submit", function(e) {
+            const nameInput = document.getElementById("med_name");
+            const errorEl = document.getElementById("med_name_error");
+            if (!nameInput || !nameInput.value.trim()) {
+                e.preventDefault();
+                if (errorEl) errorEl.style.display = "block";
+                if (nameInput) {
+                    nameInput.style.borderColor = "var(--danger)";
+                    nameInput.focus();
+                }
+                return false;
+            }
+            if (errorEl) errorEl.style.display = "none";
+
+            // If Custom is selected, make sure custom_frequency is provided
+            const selectFreq = document.getElementById("med_frequency");
+            const customInput = document.getElementById("custom_frequency_input");
+            if (selectFreq && selectFreq.value === "Custom") {
+                if (!customInput || !customInput.value.trim()) {
+                    e.preventDefault();
+                    if (customInput) {
+                        customInput.style.borderColor = "var(--danger)";
+                        customInput.focus();
+                    }
+                    return false;
+                }
+            }
+
+            const submitBtn = document.getElementById("btn_submit_medication");
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Medication...';
+            }
+        });
+    }
+});
+
+/* ---------------------------------------------------------
+   Dashboard Link Delegation
+   Covers quick-action-btn, stat-card, btn-outline, btn-primary
+   anchor tags whose child elements can swallow pointer events
+--------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", function () {
+
+    // All clickable anchor elements on the dashboard
+    var selectors = [
+        "a.quick-action-btn",
+        "a.stat-card",
+        "a.btn-outline",
+        "a.btn-primary",
+        "a.btn",
+        "a.nav-link",
+        "a.sidebar-brand",
+        "a.sidebar-user"
+    ].join(", ");
+
+    document.querySelectorAll(selectors).forEach(function (link) {
+        link.addEventListener("click", function (e) {
+            var href = link.getAttribute("href");
+
+            // Special case: Add Medication quick action button
+            if (link.id === "qa_add_medication_btn") {
+                e.preventDefault();
+                e.stopPropagation();
+                openAddMedModal();
+                return;
+            }
+
+            // For all real URLs: navigate explicitly
+            if (href && href !== "#" && href.indexOf("javascript:") !== 0) {
+                e.preventDefault();
+                window.location.href = href;
+            }
+        });
+    });
+});
+
+</script>
+
+<!-- =========================================================
+     ADD MEDICATION MODAL
+========================================================== -->
+<style>
+.med-chip {
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.med-chip:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--primary);
+  color: var(--primary-light);
+  transform: translateY(-1px);
+}
+.med-chip:active {
+  transform: translateY(0);
+}
+
+.freq-pill {
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.freq-pill:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--primary);
+  color: var(--primary-light);
+  transform: translateY(-1px);
+}
+.freq-pill.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28), rgba(6, 182, 212, 0.28));
+  border-color: var(--primary);
+  color: #34d399;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+.form-select option,
+.form-select optgroup {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  padding: 8px 12px !important;
+  font-size: 0.88rem !important;
+}
+.form-select optgroup {
+  font-weight: 700 !important;
+  color: #38bdf8 !important;
+  background-color: #0b1120 !important;
+}
+
+#add_med_modal .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+#add_med_modal .modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+}
+</style>
+
+<div class="modal-overlay" id="add_med_modal" onclick="if(event.target===this)closeAddMedModal()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="add_med_title" style="max-width: 640px; width: 92%; border-radius: var(--radius-lg); background: var(--bg-card); border: 1px solid var(--bg-glass-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+    <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between; padding: 20px 24px; border-bottom: 1px solid var(--bg-glass-border);">
+      <div class="modal-title" style="display:flex; align-items:center; gap:12px;">
+        <div style="width:42px;height:42px;background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(6,182,212,0.25));border:1px solid rgba(16,185,129,0.35);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.15rem;">
+          <i class="fas fa-pills"></i>
+        </div>
+        <div>
+          <h3 id="add_med_title" style="margin:0;font-size:1.15rem;font-weight:700;">Add Medication</h3>
+          <span style="font-size:0.8rem;color:var(--text-muted);">Record daily medicine, dosage, frequency & instructions</span>
+        </div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeAddMedModal()" aria-label="Close modal" style="background:rgba(255,255,255,0.06);border:none;color:var(--text-muted);width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <form id="add_medication_form" method="POST" action="{% url 'elderly_add_medication' %}" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_medication">
+      <input type="hidden" name="next" value="{% url 'elderly_dashboard' %}">
+
+      <div class="modal-body" style="padding: 22px 24px; max-height: 72vh; overflow-y: auto;">
+
+        <!-- Quick Suggestions Pill Bar -->
+        <div style="margin-bottom: 18px;">
+          <label class="form-label" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;display:block;">
+            ⚡ Common Prescriptions (Click to prefill):
+          </label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="med-chip" onclick="quickFillMed('Metformin', '500mg', 'Twice daily (Morning & Night)', 'Take with or immediately after meals')"><i class="fas fa-plus" style="font-size:0.65rem;"></i> Metformin 500mg</button>
+            <button type="button" class="med-chip" onclick="quickFillMed('Amlodipine', '5mg', 'Once daily (Morning)', 'Take in morning with water')"><i class="fas fa-plus" style="font-size:0.65rem;"></i> Amlodipine 5mg</button>
+            <button type="button" class="med-chip" onclick="quickFillMed('Atorvastatin', '20mg', 'Once daily (Night / Bedtime)', 'Take at bedtime')"><i class="fas fa-plus" style="font-size:0.65rem;"></i> Atorvastatin 20mg</button>
+            <button type="button" class="med-chip" onclick="quickFillMed('Aspirin', '75mg', 'Once daily (Morning)', 'Take after breakfast')"><i class="fas fa-plus" style="font-size:0.65rem;"></i> Aspirin 75mg</button>
+            <button type="button" class="med-chip" onclick="quickFillMed('Pantoprazole', '40mg', 'Once daily (Morning)', 'Take 30 mins before breakfast on empty stomach')"><i class="fas fa-plus" style="font-size:0.65rem;"></i> Pantoprazole</button>
+            <button type="button" class="med-chip" onclick="quickFillMed('Multivitamin', '1 Tablet', 'Once daily (Morning)', 'Take after food')"><i class="fas fa-plus" style="font-size:0.65rem;"></i> Multivitamin</button>
+          </div>
+        </div>
+
+        <!-- Medicine Name -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" for="med_name" style="font-weight:600;font-size:0.88rem;margin-bottom:6px;display:block;">
+            Medicine / Drug Name <span style="color:var(--danger)">*</span>
+          </label>
+          <div class="input-wrapper" style="position:relative;">
+            <i class="fas fa-pills" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--primary);font-size:0.95rem;"></i>
+            <input type="text" id="med_name" name="medicine_name" class="form-input" placeholder="e.g. Metformin, Amlodipine, Paracetamol" required style="padding-left:42px;width:100%;font-size:0.92rem;" />
+          </div>
+          <div id="med_name_error" style="color:var(--danger);font-size:0.78rem;margin-top:5px;display:none;">
+            <i class="fas fa-circle-exclamation"></i> Please enter the medication name.
+          </div>
+        </div>
+
+        <!-- Dosage & Duration (Side by Side) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="form-group">
+            <label class="form-label" for="med_dosage" style="font-weight:600;font-size:0.88rem;margin-bottom:6px;display:block;">Dosage</label>
+            <div class="input-wrapper" style="position:relative;">
+              <i class="fas fa-capsules" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.95rem;"></i>
+              <input type="text" id="med_dosage" name="dosage" class="form-input" placeholder="e.g. 500mg, 1 tablet, 10ml" style="padding-left:42px;width:100%;" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="med_duration" style="font-weight:600;font-size:0.88rem;margin-bottom:6px;display:block;">Duration</label>
+            <div class="input-wrapper" style="position:relative;">
+              <i class="fas fa-calendar-days" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.95rem;z-index:1;"></i>
+              <select id="med_duration" name="duration" class="form-input form-select" style="padding-left:42px;width:100%;">
+                <option value="Ongoing (Chronic care)" selected>Ongoing (Continuous care)</option>
+                <option value="7 Days">7 Days (1 Week)</option>
+                <option value="14 Days">14 Days (2 Weeks)</option>
+                <option value="30 Days">30 Days (1 Month)</option>
+                <option value="60 Days">60 Days (2 Months)</option>
+                <option value="90 Days">90 Days (3 Months)</option>
+                <option value="As needed">As needed (Short term)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comprehensive Frequency Section (Full Width) -->
+        <div class="form-group" style="margin-bottom: 18px; padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--bg-glass-border); border-radius: var(--radius-md);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+            <label class="form-label" for="med_frequency" style="font-weight:600;font-size:0.9rem;margin:0;display:flex;align-items:center;gap:6px;">
+              <i class="fas fa-repeat" style="color:var(--primary);"></i>
+              <span>Frequency & Schedule <span style="color:var(--danger)">*</span></span>
+            </label>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Quick-tap a button or choose from dropdown below</span>
+          </div>
+
+          <!-- Quick Frequency Buttons (Visual & Directly Clickable) -->
+          <div class="freq-pills-bar" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+            <button type="button" class="freq-pill" data-freq="Once daily (Morning)" onclick="setFrequency('Once daily (Morning)')">🌅 Once Daily (Morning)</button>
+            <button type="button" class="freq-pill" data-freq="Once daily (Afternoon / Lunch)" onclick="setFrequency('Once daily (Afternoon / Lunch)')">☀️ Once Daily (Noon)</button>
+            <button type="button" class="freq-pill" data-freq="Once daily (Night / Bedtime)" onclick="setFrequency('Once daily (Night / Bedtime)')">🌙 Once Daily (Night)</button>
+            <button type="button" class="freq-pill active" data-freq="Twice daily (Morning & Night)" onclick="setFrequency('Twice daily (Morning & Night)')">🔄 Twice Daily</button>
+            <button type="button" class="freq-pill" data-freq="Three times daily (Breakfast, Lunch, Dinner)" onclick="setFrequency('Three times daily (Breakfast, Lunch, Dinner)')">🍽️ 3 Times Daily</button>
+            <button type="button" class="freq-pill" data-freq="Four times daily (Every 6 hours)" onclick="setFrequency('Four times daily (Every 6 hours)')">⏰ 4 Times Daily</button>
+            <button type="button" class="freq-pill" data-freq="Every 8 hours" onclick="setFrequency('Every 8 hours')">⏱️ Every 8 Hours</button>
+            <button type="button" class="freq-pill" data-freq="Alternate days (Every other day)" onclick="setFrequency('Alternate days (Every other day)')">🗓️ Alternate Days</button>
+            <button type="button" class="freq-pill" data-freq="Once a week" onclick="setFrequency('Once a week')">📅 Once a Week</button>
+            <button type="button" class="freq-pill" data-freq="As needed (SOS / When in pain)" onclick="setFrequency('As needed (SOS / When in pain)')">🆘 As Needed (SOS)</button>
+            <button type="button" class="freq-pill" data-freq="Custom" onclick="setFrequency('Custom')">✏️ Custom Schedule</button>
+          </div>
+
+          <!-- Grouped Dropdown with 20+ Categorized Frequencies -->
+          <div class="input-wrapper" style="position:relative;">
+            <i class="fas fa-clock" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--primary);font-size:0.95rem;z-index:1;"></i>
+            <select id="med_frequency" name="frequency" class="form-input form-select" onchange="onFrequencySelectChange(this)" required style="padding-left:42px;width:100%;font-size:0.9rem;">
+              <optgroup label="── Daily Frequencies ──">
+                <option value="Once daily (Morning)">🌅 Once daily (Morning)</option>
+                <option value="Once daily (Afternoon / Lunch)">☀️ Once daily (Afternoon / Lunch)</option>
+                <option value="Once daily (Evening)">🌇 Once daily (Evening)</option>
+                <option value="Once daily (Night / Bedtime)">🌙 Once daily (Night / Bedtime)</option>
+                <option value="Twice daily (Morning & Night)" selected>🔄 Twice daily (Morning & Night)</option>
+                <option value="Twice daily (Morning & Evening)">🔄 Twice daily (Morning & Evening)</option>
+                <option value="Three times daily (Breakfast, Lunch, Dinner)">🍽️ Three times daily (Breakfast, Lunch, Dinner)</option>
+                <option value="Four times daily (Every 6 hours)">⏰ Four times daily (Every 6 hours)</option>
+              </optgroup>
+              <optgroup label="── Hourly Intervals ──">
+                <option value="Every 4 hours">⏱️ Every 4 hours</option>
+                <option value="Every 6 hours">⏱️ Every 6 hours</option>
+                <option value="Every 8 hours">⏱️ Every 8 hours</option>
+                <option value="Every 12 hours">⏱️ Every 12 hours</option>
+              </optgroup>
+              <optgroup label="── Weekly & Periodic ──">
+                <option value="Alternate days (Every other day)">🗓️ Alternate days (Every other day)</option>
+                <option value="Once a week">📅 Once a week</option>
+                <option value="Twice a week">📅 Twice a week</option>
+                <option value="Three times a week">📅 Three times a week</option>
+                <option value="Every 2 weeks (Bi-weekly)">📅 Every 2 weeks (Bi-weekly)</option>
+                <option value="Once a month">🗓️ Once a month</option>
+              </optgroup>
+              <optgroup label="── Conditional & Meal Timings ──">
+                <option value="Before meals (Empty stomach)">🥗 Before meals (Empty stomach)</option>
+                <option value="After meals (Post-meal)">🍲 After meals (Post-meal)</option>
+                <option value="With meals (During food)">🍽️ With meals (During food)</option>
+                <option value="At bedtime (Before sleeping)">🌙 At bedtime (Before sleeping)</option>
+                <option value="As needed (SOS / When in pain)">🆘 As needed (SOS / When in pain or discomfort)</option>
+              </optgroup>
+              <optgroup label="── Custom Schedule ──">
+                <option value="Custom">✏️ Custom frequency (Write your own schedule)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Custom Frequency Input Field (shows when Custom is active) -->
+          <div id="custom_frequency_group" style="margin-top:12px;display:none;">
+            <label class="form-label" for="custom_frequency_input" style="font-size:0.8rem;color:var(--accent-light);margin-bottom:5px;display:block;font-weight:600;">
+              ✍️ Write Custom Frequency / Specific Routine:
+            </label>
+            <div class="input-wrapper" style="position:relative;">
+              <i class="fas fa-pen-to-square" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:0.95rem;"></i>
+              <input type="text" id="custom_frequency_input" name="custom_frequency" class="form-input" placeholder="e.g. 1 tablet on Mon, Wed, Fri at 9 AM, or Every 3 days" style="padding-left:42px;width:100%;border-color:var(--accent);" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Prescribing Doctor & Food Timing -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="form-group">
+            <label class="form-label" for="med_doctor" style="font-weight:600;font-size:0.88rem;margin-bottom:6px;display:block;">Prescribed By</label>
+            <div class="input-wrapper" style="position:relative;">
+              <i class="fas fa-user-doctor" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.95rem;z-index:1;"></i>
+              <select id="med_doctor" name="doctor_id" class="form-input form-select" style="padding-left:42px;width:100%;">
+                <option value="">Self-Prescribed / Home Medicine / OTC</option>
+                {% for doc in available_doctors %}
+                  <option value="{{ doc.id }}">Dr. {{ doc.full_name }} ({{ doc.specialization }})</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="med_instructions" style="font-weight:600;font-size:0.88rem;margin-bottom:6px;display:block;">Food Timing / Intake</label>
+            <div class="input-wrapper" style="position:relative;">
+              <i class="fas fa-utensils" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.95rem;"></i>
+              <input type="text" id="med_instructions" name="instructions" class="form-input" placeholder="e.g. Take 30 mins after meals with warm water" style="padding-left:42px;width:100%;" />
+            </div>
+        </div>
+
+        <!-- Reminder Notes -->
+        <div class="form-group">
+          <label class="form-label" for="med_notes" style="font-weight:600;font-size:0.88rem;margin-bottom:6px;display:block;">Special Notes / Precautions (Optional)</label>
+          <textarea id="med_notes" name="notes" class="form-input form-textarea" rows="2" placeholder="e.g. Do not crush tablet, monitor blood pressure weekly..." style="width:100%;font-size:0.86rem;"></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--bg-glass-border); display:flex; justify-content:flex-end; gap:12px; background:rgba(255,255,255,0.02);">
+        <button type="button" class="btn btn-ghost" onclick="closeAddMedModal()" style="border:1px solid var(--bg-glass-border);padding:9px 18px;border-radius:var(--radius-md);cursor:pointer;">
+          Cancel
+        </button>
+        <button type="submit" id="btn_submit_medication" class="btn btn-primary" style="padding:9px 24px;border-radius:var(--radius-md);display:inline-flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;">
+          <i class="fas fa-plus"></i> Save Medication
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

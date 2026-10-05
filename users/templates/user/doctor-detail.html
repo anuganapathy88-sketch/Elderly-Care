@@ -1,0 +1,1014 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ doctor.full_name }} — Smart Elderly Care</title>
+  <meta name="description" content="Doctor details and appointment booking." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.3" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.3" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.3" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    /* Input wrapper and icon alignment so input text NEVER overrides icons */
+    .input-wrapper {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      width: 100% !important;
+    }
+    .input-wrapper .input-icon {
+      position: absolute !important;
+      left: 18px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 22px !important;
+      height: 22px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: var(--text-muted) !important;
+      font-size: 1.05rem !important;
+      pointer-events: none !important;
+      z-index: 5 !important;
+      transition: color var(--transition) !important;
+    }
+    .input-wrapper:focus-within .input-icon {
+      color: var(--primary) !important;
+    }
+    .input-wrapper .form-input,
+    .input-wrapper .form-select,
+    .input-wrapper input,
+    .input-wrapper select {
+      padding-left: 58px !important;
+    }
+    .input-wrapper input[type="date"],
+    .input-wrapper input[type="time"] {
+      padding-left: 58px !important;
+      color-scheme: dark !important;
+      cursor: pointer !important;
+    }
+    .input-wrapper input[type="date"]::-webkit-datetime-edit,
+    .input-wrapper input[type="time"]::-webkit-datetime-edit {
+      padding-left: 0 !important;
+      cursor: pointer !important;
+    }
+    .input-wrapper input[type="date"]::-webkit-calendar-picker-indicator,
+    .input-wrapper input[type="time"]::-webkit-calendar-picker-indicator {
+      cursor: pointer !important;
+      opacity: 0.85 !important;
+      filter: invert(0.8) !important;
+      margin-right: 6px !important;
+      padding: 4px !important;
+      transition: transform 0.15s ease, opacity 0.15s ease !important;
+    }
+    .input-wrapper input[type="date"]::-webkit-calendar-picker-indicator:hover,
+    .input-wrapper input[type="time"]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1 !important;
+      transform: scale(1.18) !important;
+    }
+
+    /* Clickable calendar and clock picker icons */
+    .input-wrapper .input-icon.clickable-picker-icon,
+    .input-wrapper:has(input[type="date"]) .input-icon,
+    .input-wrapper:has(input[type="time"]) .input-icon {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      border-radius: 6px !important;
+      padding: 4px !important;
+      transition: color var(--transition), transform 0.15s ease, background 0.15s ease !important;
+    }
+    .input-wrapper .input-icon.clickable-picker-icon:hover,
+    .input-wrapper:has(input[type="date"]) .input-icon:hover,
+    .input-wrapper:has(input[type="time"]) .input-icon:hover {
+      color: var(--primary) !important;
+      transform: translateY(-50%) scale(1.22) !important;
+      background: rgba(16, 185, 129, 0.18) !important;
+    }
+    .input-wrapper .input-icon.clickable-picker-icon:active,
+    .input-wrapper:has(input[type="date"]) .input-icon:active,
+    .input-wrapper:has(input[type="time"]) .input-icon:active {
+      transform: translateY(-50%) scale(0.95) !important;
+    }
+    .input-wrapper.textarea-wrapper {
+      align-items: flex-start !important;
+    }
+    .input-wrapper.textarea-wrapper .input-icon {
+      top: 16px !important;
+      transform: none !important;
+    }
+    .input-wrapper.textarea-wrapper textarea {
+      padding-left: 58px !important;
+      padding-top: 14px !important;
+    }
+
+    /* Modal visibility & smooth transitions */
+    .modal-overlay {
+      display: none;
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(0, 0, 0, 0.75) !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+      z-index: 99999 !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transition: opacity 0.2s ease, visibility 0.2s ease !important;
+      pointer-events: none !important;
+    }
+    .modal-overlay.open {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    .modal-overlay .modal {
+      background: var(--bg-surface) !important;
+      border: 1px solid var(--bg-glass-border) !important;
+      border-radius: var(--radius-xl) !important;
+      width: 100% !important;
+      max-width: 540px !important;
+      max-height: 90vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+      overflow: hidden !important;
+      transform: scale(0.95) translateY(12px) !important;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .modal-overlay.open .modal {
+      transform: scale(1) translateY(0) !important;
+    }
+
+    .modal-header {
+      padding: 18px 24px !important;
+      border-bottom: 1px solid var(--bg-glass-border) !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      flex-shrink: 0 !important;
+      background: var(--bg-surface) !important;
+    }
+    .modal form {
+      display: flex !important;
+      flex-direction: column !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+    }
+    .modal-body {
+      padding: 20px 24px !important;
+      overflow-y: auto !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 16px !important;
+      overscroll-behavior: contain !important;
+    }
+    .modal-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .modal-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    .modal-footer {
+      padding: 16px 24px !important;
+      border-top: 1px solid var(--bg-glass-border) !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: center !important;
+      gap: 12px !important;
+      background: var(--bg-surface) !important;
+      flex-shrink: 0 !important;
+      z-index: 20 !important;
+      position: sticky !important;
+      bottom: 0 !important;
+    }
+
+    /* Time slot selection buttons */
+    .time-slot-btn {
+      position: relative;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--bg-glass);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: center;
+      transition: all var(--transition);
+      white-space: nowrap;
+      outline: none;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+    .time-slot-btn:hover:not(:disabled):not(.disabled-slot) {
+      border-color: var(--primary);
+      color: var(--text-primary);
+      background: rgba(16, 185, 129, 0.12);
+      transform: translateY(-1px);
+    }
+    .time-slot-btn.active {
+      border-color: var(--primary) !important;
+      background: rgba(16, 185, 129, 0.22) !important;
+      color: var(--primary) !important;
+      box-shadow: 0 0 0 2px var(--primary-glow) !important;
+    }
+    .time-slot-btn:disabled,
+    .time-slot-btn.disabled-slot {
+      opacity: 0.42 !important;
+      cursor: not-allowed !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+      color: var(--text-muted) !important;
+      text-decoration: line-through !important;
+      box-shadow: none !important;
+      transform: none !important;
+      pointer-events: auto !important;
+    }
+    .time-slot-btn .slot-status-indicator {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-decoration: none !important;
+      display: none;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .time-slot-btn.disabled-slot .slot-status-indicator,
+    .time-slot-btn:disabled .slot-status-indicator {
+      display: inline-block;
+      color: #ef4444;
+      text-decoration: none !important;
+    }
+
+    .profile-hero {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-xl);
+      padding: 30px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    @media (min-width: 768px) {
+      .profile-hero { flex-direction: row; align-items: center; }
+    }
+    .profile-hero-info { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .hero-name { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); }
+    .hero-spec { font-size: 1.1rem; color: var(--primary); font-weight: 600; }
+    
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 768px) {
+      .detail-grid { grid-template-columns: 2fr 1fr; }
+    }
+    .detail-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .detail-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+    }
+    .info-list { display: flex; flex-direction: column; gap: 16px; }
+    .info-item { display: flex; gap: 12px; }
+    .info-item i { margin-top: 4px; color: var(--primary); width: 16px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text"><h3>ElderCare</h3><span>Smart Care System</span></div>
+        </a>
+      </div>
+
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email">{{ request.user.email }}</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.75rem;"></i>
+      </a>
+
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_prescriptions' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medications</a>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'elderly_activities' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-person-walking"></i></span>Activities</a>
+
+        <span class="nav-section-label">Health & Safety</span>
+        <a href="{% url 'doctors' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'elderly_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-phone-volume"></i></span>Emergency Contacts</a>
+
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'notifications' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-bell"></i></span>Notifications</a>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <a href="{% url 'doctors' %}" class="topbar-btn" title="Back to Doctors">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <div class="topbar-title">
+            <h2>{{ doctor.full_name }}</h2>
+            <p>{{ doctor.specialization }}</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        {% if messages %}
+          <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast toast-{{ message.tags }}" style="position:static; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Hero Section -->
+        <div class="profile-hero animate-fadeInUp">
+          <div style="width:84px; height:84px; border-radius:18px; background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(59,130,246,0.25)); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:2.2rem; flex-shrink:0;">
+            <i class="fas fa-user-doctor"></i>
+          </div>
+          <div class="profile-hero-info">
+            <div class="hero-name">{{ doctor.full_name }}</div>
+            <div class="hero-spec">{{ doctor.specialization }}</div>
+            {% if doctor.qualification %}
+              <div style="color:var(--text-muted); font-size:0.9rem;">{{ doctor.qualification }}</div>
+            {% endif %}
+            <div style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap; font-size:0.88rem;">
+              {% if doctor.clinic_address %}
+                <span class="meta-tag" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); padding:4px 10px; border-radius:6px; color:var(--text-secondary);">
+                  <i class="fas fa-hospital" style="color:var(--text-muted);"></i> {{ doctor.clinic_address }}
+                </span>
+              {% endif %}
+              <span class="meta-tag" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); padding:4px 10px; border-radius:6px; color:var(--text-secondary);">
+                <i class="fas fa-award" style="color:var(--warning);"></i> {{ doctor.experience_years }} Years Experience
+              </span>
+              <span class="meta-tag" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:4px 10px; border-radius:6px; color:var(--primary); font-weight:700;">
+                ₹{{ doctor.consultation_fee }} Consultation Fee
+              </span>
+            </div>
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="openBookingModal()" style="padding:12px 24px; font-size:1.05rem;">
+              <i class="fas fa-calendar-check"></i> Book Appointment
+            </button>
+          </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="detail-grid animate-fadeInUp delay-1">
+          
+          <!-- Left Col -->
+          <div style="display:flex; flex-direction:column; gap:24px;">
+            <div class="detail-card">
+              <h3><i class="fas fa-user-doctor"></i> About Specialist</h3>
+              <p style="color:var(--text-secondary); line-height:1.6; font-size:0.95rem;">
+                {{ doctor.bio|default:"Dedicated geriatric healthcare professional committed to holistic elder care, preventive medicine, and personal consultation for senior well-being." }}
+              </p>
+            </div>
+            
+            <div class="detail-card">
+              <h3><i class="fas fa-hospital"></i> Clinic & Facility Location</h3>
+              <div class="info-list">
+                <div class="info-item">
+                  <i class="fas fa-location-dot"></i>
+                  <div>
+                    <div style="font-weight:600; margin-bottom:4px; color:var(--text-primary);">Clinic Address</div>
+                    <div style="color:var(--text-secondary);">{{ doctor.clinic_address|default:"General OPD Clinic" }}</div>
+                  </div>
+                </div>
+                {% if doctor.contact_phone %}
+                  <div class="info-item">
+                    <i class="fas fa-phone"></i>
+                    <div>
+                      <div style="font-weight:600; margin-bottom:4px; color:var(--text-primary);">Practice Contact</div>
+                      <div style="color:var(--text-secondary);">{{ doctor.contact_phone }}</div>
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Col: Booking Card -->
+          <div style="display:flex; flex-direction:column; gap:24px;">
+            <div class="detail-card" style="border-color:rgba(16,185,129,0.3); background:linear-gradient(135deg,rgba(16,185,129,0.06),rgba(59,130,246,0.04));">
+              <h3><i class="fas fa-calendar-plus" style="color:var(--primary)"></i> Schedule Visit</h3>
+              <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:18px;">
+                Directly book a consultation slot with Dr. {{ doctor.full_name }}.
+              </p>
+              
+              <button class="btn btn-primary" onclick="openBookingModal()" style="width:100%; justify-content:center;">
+                <i class="fas fa-calendar-check"></i> Book Now (₹{{ doctor.consultation_fee }})
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ BOOKING MODAL ══ -->
+  <div class="modal-overlay" id="book_modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" style="display:flex; align-items:center; gap:12px;">
+          <div style="width:36px;height:36px;background:rgba(16,185,129,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1rem;">
+            <i class="fas fa-calendar-plus"></i>
+          </div>
+          <h3 style="margin:0; font-size:1.15rem; color:var(--text-primary);">Book Appointment</h3>
+        </div>
+        <button type="button" class="modal-close" onclick="closeBookingModal()" style="background:none; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form method="POST" action="{% url 'book_appointment' doctor.id %}" onsubmit="return validateBookingForm(event)">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div style="padding:14px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-md);">
+            <div style="font-weight:700; font-size:1.05rem; color:var(--text-primary);">{{ doctor.full_name }}</div>
+            <div style="color:var(--primary); font-size:0.9rem; font-weight:600;">{{ doctor.specialization }}</div>
+            <div style="color:var(--text-muted); font-size:0.85rem; margin-top:2px;">{{ doctor.clinic_address }}</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="bk_date">Select Date *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-calendar input-icon clickable-picker-icon" 
+                   id="bk_date_icon"
+                   onclick="openPicker('bk_date')" 
+                   onkeydown="handlePickerKey(event, 'bk_date')"
+                   tabindex="0"
+                   role="button"
+                   aria-label="Open Calendar"
+                   title="Click to choose appointment date"></i>
+                <input type="date" 
+                       id="bk_date" 
+                       name="appointment_date" 
+                       class="form-input" 
+                       min="{{ min_date_str }}" 
+                       max="{{ max_date_str }}" 
+                       required 
+                       onchange="handleDateChange()" 
+                       onclick="openPicker('bk_date')" />
+              </div>
+            </div>
+            <div class="form-group">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="form-label" for="bk_time" style="margin-bottom:0;">Select Time *</label>
+                <span class="badge" style="background:rgba(59,130,246,0.15); color:var(--info); font-size:0.75rem; padding:2px 8px;">
+                  <i class="fas fa-clock"></i> 12-Hour AM/PM
+                </span>
+              </div>
+              <div class="input-wrapper" style="margin-top:6px;">
+                <i class="fas fa-clock input-icon clickable-picker-icon" 
+                   id="bk_time_icon"
+                   onclick="openPicker('bk_time')" 
+                   onkeydown="handlePickerKey(event, 'bk_time')"
+                   tabindex="0"
+                   role="button"
+                   aria-label="Open Time Picker"
+                   title="Click to choose appointment time"></i>
+                <input type="time" id="bk_time" name="appointment_time" class="form-input" required oninput="updateTimeDisplay(this.value, 'bk_time_preview')" onclick="openPicker('bk_time')" />
+              </div>
+              <div id="bk_time_preview" style="font-size:0.8rem; font-weight:600; color:var(--primary); margin-top:4px; min-height:18px;">
+                <i class="fas fa-circle-info" style="color:var(--text-muted);"></i> Format: 10:00 AM, 04:30 PM
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Time Slots Selection -->
+          <div class="form-group" style="margin-top:-4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:0.82rem; font-weight:600; color:var(--text-secondary);">
+                <i class="fas fa-calendar-check" style="color:var(--primary);"></i> Available Time Slots:
+              </span>
+              <span id="bk_available_count" class="badge badge-success" style="font-size:0.75rem; padding:3px 10px; font-weight:600;">
+                <i class="fas fa-clock"></i> Checking availability...
+              </span>
+            </div>
+
+            <!-- Morning Slots -->
+            <div style="margin-bottom:10px;">
+              <div style="font-size:0.75rem; color:var(--warning); font-weight:600; margin-bottom:5px;">
+                <i class="fas fa-sun"></i> Morning Sessions
+              </div>
+              <div class="time-slots-grid" id="bk_slots_morning" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)); gap:6px;">
+                <button type="button" class="time-slot-btn" data-time="09:30" data-display="09:30 AM (Morning)" onclick="selectSlot('09:30', '09:30 AM (Morning)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">09:30 AM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="10:00" data-display="10:00 AM (Morning)" onclick="selectSlot('10:00', '10:00 AM (Morning)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">10:00 AM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="10:30" data-display="10:30 AM (Morning)" onclick="selectSlot('10:30', '10:30 AM (Morning)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">10:30 AM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="11:00" data-display="11:00 AM (Morning)" onclick="selectSlot('11:00', '11:00 AM (Morning)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">11:00 AM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="11:30" data-display="11:30 AM (Morning)" onclick="selectSlot('11:30', '11:30 AM (Morning)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">11:30 AM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="12:00" data-display="12:00 PM (Morning)" onclick="selectSlot('12:00', '12:00 PM (Morning)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">12:00 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Afternoon Slots -->
+            <div style="margin-bottom:10px;">
+              <div style="font-size:0.75rem; color:#f97316; font-weight:600; margin-bottom:5px;">
+                <i class="fas fa-cloud-sun"></i> Afternoon Sessions
+              </div>
+              <div class="time-slots-grid" id="bk_slots_afternoon" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)); gap:6px;">
+                <button type="button" class="time-slot-btn" data-time="14:00" data-display="02:00 PM (Afternoon)" onclick="selectSlot('14:00', '02:00 PM (Afternoon)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">02:00 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="14:30" data-display="02:30 PM (Afternoon)" onclick="selectSlot('14:30', '02:30 PM (Afternoon)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">02:30 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="15:00" data-display="03:00 PM (Afternoon)" onclick="selectSlot('15:00', '03:00 PM (Afternoon)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">03:00 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="15:30" data-display="03:30 PM (Afternoon)" onclick="selectSlot('15:30', '03:30 PM (Afternoon)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">03:30 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Evening Slots -->
+            <div>
+              <div style="font-size:0.75rem; color:var(--info); font-weight:600; margin-bottom:5px;">
+                <i class="fas fa-moon"></i> Evening Sessions
+              </div>
+              <div class="time-slots-grid" id="bk_slots_evening" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)); gap:6px;">
+                <button type="button" class="time-slot-btn" data-time="16:00" data-display="04:00 PM (Evening)" onclick="selectSlot('16:00', '04:00 PM (Evening)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">04:00 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="16:30" data-display="04:30 PM (Evening)" onclick="selectSlot('16:30', '04:30 PM (Evening)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">04:30 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="17:00" data-display="05:00 PM (Evening)" onclick="selectSlot('17:00', '05:00 PM (Evening)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">05:00 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="17:30" data-display="05:30 PM (Evening)" onclick="selectSlot('17:30', '05:30 PM (Evening)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">05:30 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+                <button type="button" class="time-slot-btn" data-time="18:00" data-display="06:00 PM (Evening)" onclick="selectSlot('18:00', '06:00 PM (Evening)', 'bk_time', 'bk_time_preview', this)">
+                  <span class="slot-time">06:00 PM</span>
+                  <span class="slot-status-indicator">Passed</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Notice when all slots passed or date invalid -->
+            <div id="bk_slots_notice" style="display:none; margin-top:10px; padding:10px 14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-md); color:#fca5a5; font-size:0.82rem; line-height:1.45;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bk_reason">Reason for Visit</label>
+            <div class="input-wrapper textarea-wrapper">
+              <i class="fas fa-notes-medical input-icon"></i>
+              <textarea id="bk_reason" name="reason" class="form-input form-textarea" placeholder="Briefly describe your symptoms or reason for consultation…" style="min-height:80px;"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeBookingModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="confirm_booking_btn" style="padding:10px 24px; font-weight:700; font-size:0.95rem; box-shadow:0 4px 14px var(--primary-glow); cursor:pointer;">
+            <i class="fas fa-check-circle"></i> Confirm Booking
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    function openPicker(inputId) {
+      const el = typeof inputId === 'string' ? document.getElementById(inputId) : inputId;
+      if (!el) return;
+      if (typeof el.showPicker === 'function') {
+        try {
+          el.showPicker();
+          return;
+        } catch (err) {
+          // Fallback to focus if showPicker is blocked
+        }
+      }
+      el.focus();
+    }
+
+    function handlePickerKey(e, inputId) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openPicker(inputId);
+      }
+    }
+
+    function getLocalDateString() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function getLocalNextMonthEndString() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const nextMonthEnd = new Date(year, month + 2, 0);
+      const y = nextMonthEnd.getFullYear();
+      const m = String(nextMonthEnd.getMonth() + 1).padStart(2, '0');
+      const day = String(nextMonthEnd.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function selectSlot(timeVal, displayStr, inputId, previewId, btnElem) {
+      if (btnElem && (btnElem.disabled || btnElem.classList.contains('disabled-slot'))) {
+        return;
+      }
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.value = timeVal;
+      }
+      // Toggle active class across all slot buttons
+      document.querySelectorAll('#book_modal .time-slot-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) {
+        btnElem.classList.add('active');
+      }
+      updateTimeDisplay(timeVal, previewId);
+    }
+
+    function updateSlotAvailability() {
+      const dateInput = document.getElementById('bk_date');
+      if (!dateInput) return;
+
+      const todayStr = getLocalDateString();
+      const selectedDate = dateInput.value;
+
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const isToday = (selectedDate === todayStr);
+      const isPastDate = (selectedDate && selectedDate < todayStr);
+
+      const slotButtons = document.querySelectorAll('#book_modal .time-slot-btn');
+      let availableCount = 0;
+      let totalCount = slotButtons.length;
+
+      slotButtons.forEach(btn => {
+        const timeVal = btn.getAttribute('data-time');
+        if (!timeVal) return;
+
+        const parts = timeVal.split(':');
+        const slotMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+
+        let isPast = false;
+        if (isPastDate) {
+          isPast = true;
+        } else if (isToday) {
+          // If slot time has already arrived or passed, disable it automatically
+          if (slotMinutes <= currentMinutes) {
+            isPast = true;
+          }
+        }
+
+        if (isPast) {
+          btn.disabled = true;
+          btn.classList.add('disabled-slot');
+          btn.title = isPastDate ? "Date has already passed" : "This time slot has already passed for today";
+          // If this slot was previously chosen, clear it
+          if (btn.classList.contains('active')) {
+            btn.classList.remove('active');
+            const timeInput = document.getElementById('bk_time');
+            if (timeInput && timeInput.value === timeVal) {
+              timeInput.value = '';
+              const preview = document.getElementById('bk_time_preview');
+              if (preview) {
+                preview.innerHTML = '<span style="color:var(--danger); font-size:0.8rem; font-weight:600;"><i class="fas fa-triangle-exclamation"></i> Previously chosen time has passed. Please select an upcoming slot.</span>';
+              }
+            }
+          }
+        } else {
+          btn.disabled = false;
+          btn.classList.remove('disabled-slot');
+          btn.title = "Click to select this slot";
+          availableCount++;
+        }
+      });
+
+      // Update available count badge
+      const countBadge = document.getElementById('bk_available_count');
+      if (countBadge) {
+        if (isPastDate) {
+          countBadge.className = 'badge badge-danger';
+          countBadge.style.background = 'rgba(239,68,68,0.15)';
+          countBadge.style.color = 'var(--danger)';
+          countBadge.innerHTML = '<i class="fas fa-ban"></i> Past Date';
+        } else if (isToday) {
+          if (availableCount > 0) {
+            countBadge.className = 'badge badge-success';
+            countBadge.style.background = 'rgba(16,185,129,0.15)';
+            countBadge.style.color = 'var(--primary)';
+            countBadge.innerHTML = `<i class="fas fa-check-circle"></i> ${availableCount} Slots Available Today`;
+          } else {
+            countBadge.className = 'badge badge-danger';
+            countBadge.style.background = 'rgba(239,68,68,0.15)';
+            countBadge.style.color = 'var(--danger)';
+            countBadge.innerHTML = '<i class="fas fa-clock-rotate-left"></i> All Slots Ended Today';
+          }
+        } else {
+          countBadge.className = 'badge badge-info';
+          countBadge.style.background = 'rgba(59,130,246,0.15)';
+          countBadge.style.color = 'var(--info)';
+          countBadge.innerHTML = `<i class="fas fa-calendar-day"></i> All ${totalCount} Slots Available`;
+        }
+      }
+
+      // Update notice banner
+      const noticeElem = document.getElementById('bk_slots_notice');
+      if (noticeElem) {
+        if (isToday && availableCount === 0) {
+          noticeElem.style.display = 'block';
+          noticeElem.innerHTML = '<i class="fas fa-clock-rotate-left"></i> <strong>All appointment slots for today have concluded.</strong> Please choose tomorrow or another future date to book an appointment.';
+        } else if (isPastDate) {
+          noticeElem.style.display = 'block';
+          noticeElem.innerHTML = '<i class="fas fa-triangle-exclamation"></i> <strong>Selected date is in the past.</strong> Please choose today or an upcoming date.';
+        } else {
+          noticeElem.style.display = 'none';
+        }
+      }
+
+      // Re-validate entered time
+      const timeInput = document.getElementById('bk_time');
+      if (timeInput && timeInput.value) {
+        updateTimeDisplay(timeInput.value, 'bk_time_preview');
+      }
+    }
+
+    function updateTimeDisplay(val, previewId) {
+      const preview = document.getElementById(previewId);
+      const submitBtn = document.getElementById('confirm_booking_btn');
+      if (!val) {
+        if (preview) preview.innerHTML = '<i class="fas fa-circle-info" style="color:var(--text-muted);"></i> Format: 10:00 AM, 04:30 PM';
+        return;
+      }
+
+      const dateInput = document.getElementById('bk_date');
+      const todayStr = getLocalDateString();
+      const selectedDate = dateInput ? dateInput.value : todayStr;
+
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const parts = val.split(':');
+      const hours24 = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1] || '0', 10);
+      const valMinutes = hours24 * 60 + minutes;
+
+      let h12 = hours24 % 12;
+      h12 = h12 ? h12 : 12;
+      const ampm = hours24 >= 12 ? 'PM' : 'AM';
+      const period = hours24 < 12 ? 'Morning' : (hours24 < 17 ? 'Afternoon' : 'Evening');
+      const formatted = `${String(h12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${ampm} (${period})`;
+
+      if (selectedDate && selectedDate < todayStr) {
+        if (preview) {
+          preview.innerHTML = '<span style="color:var(--danger); font-weight:600;"><i class="fas fa-circle-xmark"></i> Date cannot be in the past.</span>';
+        }
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+      }
+
+      if (selectedDate === todayStr && valMinutes <= currentMinutes) {
+        if (preview) {
+          preview.innerHTML = `<span style="color:var(--danger); font-weight:600;"><i class="fas fa-circle-xmark"></i> ${formatted} — This time has already passed for today. Please select a later time.</span>`;
+        }
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+      }
+
+      if (submitBtn) submitBtn.disabled = false;
+      if (preview) {
+        preview.innerHTML = `<i class="fas fa-check-circle" style="color:var(--primary);"></i> Selected: <strong>${formatted}</strong>`;
+      }
+
+      // Highlight active slot button
+      document.querySelectorAll('#book_modal .time-slot-btn').forEach(b => {
+        if (b.getAttribute('data-time') === val && !b.disabled) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
+    }
+
+    function handleDateChange() {
+      const dateInput = document.getElementById('bk_date');
+      if (dateInput) {
+        const todayStr = getLocalDateString();
+        const maxDateStr = getLocalNextMonthEndString();
+        if (dateInput.value && dateInput.value < todayStr) {
+          dateInput.value = todayStr;
+          alert("Past dates cannot be selected. Reverted to today's date.");
+        } else if (dateInput.value && dateInput.value > maxDateStr) {
+          dateInput.value = maxDateStr;
+          alert("Appointments can only be booked up to the end of next month. Later dates are disabled.");
+        }
+      }
+      updateSlotAvailability();
+    }
+
+    function validateBookingForm(event) {
+      const dateInput = document.getElementById('bk_date');
+      const timeInput = document.getElementById('bk_time');
+      if (!dateInput || !timeInput) return true;
+
+      const todayStr = getLocalDateString();
+      const maxDateStr = getLocalNextMonthEndString();
+      const selectedDate = dateInput.value;
+      const selectedTime = timeInput.value;
+
+      if (!selectedDate || !selectedTime) {
+        alert("Please select both a date and an appointment time.");
+        if (event) event.preventDefault();
+        return false;
+      }
+
+      if (selectedDate < todayStr) {
+        alert("Appointment date cannot be in the past. Please select today or an upcoming date.");
+        if (event) event.preventDefault();
+        return false;
+      }
+
+      if (selectedDate > maxDateStr) {
+        alert("Appointments can only be booked up to the end of next month. Later dates are disabled.");
+        if (event) event.preventDefault();
+        return false;
+      }
+
+      if (selectedDate === todayStr) {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const parts = selectedTime.split(':');
+        const selMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        if (selMinutes <= currentMinutes) {
+          alert("The selected time slot has already passed for today. Please pick an upcoming time slot.");
+          if (event) event.preventDefault();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function openBookingModal() {
+      const modal = document.getElementById('book_modal');
+      if (modal) {
+        modal.classList.add('open');
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modal.style.pointerEvents = 'auto';
+
+        const dateInput = document.getElementById('bk_date');
+        const todayStr = getLocalDateString();
+        const maxDateStr = getLocalNextMonthEndString();
+        if (dateInput) {
+          dateInput.min = todayStr;
+          dateInput.max = maxDateStr;
+          if (!dateInput.value || dateInput.value < todayStr || dateInput.value > maxDateStr) {
+            dateInput.value = todayStr;
+          }
+        }
+        updateSlotAvailability();
+      }
+    }
+
+    function closeBookingModal() {
+      const modal = document.getElementById('book_modal');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.style.display = 'none';
+        modal.style.visibility = 'hidden';
+        modal.style.opacity = '0';
+        modal.style.pointerEvents = 'none';
+      }
+    }
+
+    // Auto-update availability every 15 seconds so as time passes, past slots disable automatically!
+    setInterval(() => {
+      const modal = document.getElementById('book_modal');
+      if (modal && modal.classList.contains('open')) {
+        updateSlotAvailability();
+      }
+    }, 15000);
+
+    // Close on click outside (backdrop)
+    document.addEventListener('click', (e) => {
+      const modal = document.getElementById('book_modal');
+      if (modal && e.target === modal) {
+        closeBookingModal();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeBookingModal();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const dateIcon = document.getElementById('bk_date_icon');
+      if (dateIcon) {
+        dateIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openPicker('bk_date');
+        });
+      }
+      const timeIcon = document.getElementById('bk_time_icon');
+      if (timeIcon) {
+        timeIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openPicker('bk_time');
+        });
+      }
+    });
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

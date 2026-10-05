@@ -1,0 +1,264 @@
+/* ═══════════════════════════════════════════════════════════════
+   Smart Elderly Care — profile.css
+   Profile View & Edit Page Styles
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Profile Hero Card ──────────────────────────────────────── */
+.profile-hero {
+  background: linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(99,102,241,0.08) 100%);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: var(--radius-xl);
+  padding: 36px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeInUp 0.4s ease both;
+}
+
+.profile-hero::after {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ── Profile Avatar (large) ─────────────────────────────────── */
+#profile_avatar {
+  width: 100px; height: 100px;
+  font-size: 2.2rem;
+  flex-shrink: 0;
+  border: 3px solid rgba(16,185,129,0.4);
+  box-shadow: 0 0 0 6px rgba(16,185,129,0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.profile-hero-info { flex: 1; z-index: 1; }
+
+.profile-hero-info h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.profile-hero-info .profile-email {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.profile-hero-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.profile-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1;
+}
+
+/* ── Profile Sections Grid ──────────────────────────────────── */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.profile-section {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  animation: fadeInUp 0.5s ease both;
+  transition: border-color var(--transition);
+}
+.profile-section:hover { border-color: rgba(16,185,129,0.18); }
+
+.profile-section-full { grid-column: 1 / -1; }
+
+.profile-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--primary);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bg-glass-border);
+}
+
+.profile-section-title i {
+  width: 30px; height: 30px;
+  background: rgba(16,185,129,0.12);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem;
+}
+
+/* ── Profile Detail Row ─────────────────────────────────────── */
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+.detail-row:last-child { margin-bottom: 0; }
+
+.detail-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.detail-value {
+  font-size: 0.94rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.detail-value-highlight {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ── Emergency Contact Card ─────────────────────────────────── */
+.emergency-card {
+  background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.04) 100%);
+  border-color: rgba(239,68,68,0.2) !important;
+}
+.emergency-card .profile-section-title { color: var(--danger); }
+.emergency-card .profile-section-title i { background: rgba(239,68,68,0.12); }
+
+/* ── Edit Profile Form ──────────────────────────────────────── */
+.edit-profile-container {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* ── Avatar Upload ──────────────────────────────────────────── */
+.avatar-upload-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  background: var(--bg-glass);
+  border: 2px dashed var(--bg-glass-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 28px;
+  transition: border-color var(--transition);
+}
+.avatar-upload-wrapper:hover { border-color: rgba(16,185,129,0.3); }
+
+#avatar_preview {
+  width: 80px; height: 80px;
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  border: 2px solid rgba(16,185,129,0.3);
+}
+
+.avatar-upload-info h4 { font-size: 0.95rem; margin-bottom: 4px; }
+.avatar-upload-info p  { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+
+.avatar-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-glass);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.avatar-upload-btn:hover {
+  background: rgba(16,185,129,0.1);
+  border-color: rgba(16,185,129,0.3);
+  color: var(--primary);
+}
+
+#photo_input { display: none; }
+
+/* ── Form Card ──────────────────────────────────────────────── */
+.edit-form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  backdrop-filter: blur(20px);
+  margin-bottom: 20px;
+  animation: fadeInUp 0.5s ease both;
+}
+
+.edit-form-card .profile-section-title {
+  font-size: 0.8rem;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--bg-glass-border);
+}
+
+/* ── Form Actions ───────────────────────────────────────────── */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+/* ── Change Password Page ───────────────────────────────────── */
+.change-password-container {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.password-strength {
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--bg-glass-border);
+  margin-top: 8px;
+  overflow: hidden;
+}
+.password-strength-bar {
+  height: 100%;
+  border-radius: var(--radius-full);
+  width: 0%;
+  transition: all var(--transition-slow);
+}
+.strength-weak   { width: 25%; background: var(--danger); }
+.strength-fair   { width: 50%; background: var(--warning); }
+.strength-good   { width: 75%; background: var(--info); }
+.strength-strong { width: 100%; background: var(--success); }
+
+.password-strength-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .profile-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+  .profile-hero-badges { justify-content: center; }
+  .profile-hero-actions { flex-direction: row; }
+  .profile-grid { grid-template-columns: 1fr; }
+  .avatar-upload-wrapper { flex-direction: column; text-align: center; }
+  .form-actions { flex-direction: column-reverse; }
+  .form-actions .btn { width: 100%; }
+}

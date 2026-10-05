@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medications — Smart Elderly Care</title>
+  <meta name="description" content="Track and manage all medications, dosages, and schedules for your loved one." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.4" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .sidebar-brand *, .sidebar-nav .nav-link * {
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text"><h3>ElderCare</h3><span>Smart Care System</span></div>
+        </a>
+      </div>
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email }}</div>
+        </div>
+      </a>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_prescriptions' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medications</a>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'elderly_activities' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-person-walking"></i></span>Activities</a>
+        <span class="nav-section-label">Health</span>
+        <a href="{% url 'doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'elderly_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-phone-volume"></i></span>Emergency Contacts</a>
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>💊 Medications</h2>
+            <p>Track daily medications and dosages</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-primary btn-sm" onclick="Medications.openModal()" id="add_med_btn">
+            <i class="fas fa-plus"></i> <span class="hide-mobile">Add Medication</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Stats -->
+        <div class="module-stats">
+          <div class="module-stat delay-1">
+            <div class="ms-value" id="ms_total" style="color:var(--primary)">0</div>
+            <div class="ms-label">Total</div>
+          </div>
+          <div class="module-stat delay-2">
+            <div class="ms-value" id="ms_active" style="color:var(--info)">0</div>
+            <div class="ms-label">Active</div>
+          </div>
+          <div class="module-stat delay-3">
+            <div class="ms-value" id="ms_taken" style="color:var(--success)">0</div>
+            <div class="ms-label">Taken Today</div>
+          </div>
+          <div class="module-stat delay-4">
+            <div class="ms-value" id="ms_pending" style="color:var(--warning)">0</div>
+            <div class="ms-label">Pending Today</div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="med_search" placeholder="Search medications…" oninput="Medications.renderList(undefined, this.value)" />
+          </div>
+          <button class="filter-btn active" id="filter_all" onclick="setMedFilter('all', this)"><i class="fas fa-list"></i> All</button>
+          <button class="filter-btn" id="filter_active" onclick="setMedFilter('active', this)"><i class="fas fa-circle-check"></i> Active</button>
+          <button class="filter-btn" id="filter_today" onclick="setMedFilter('today', this)"><i class="fas fa-clock"></i> Pending Today</button>
+          <button class="filter-btn" id="filter_inactive" onclick="setMedFilter('inactive', this)"><i class="fas fa-ban"></i> Inactive</button>
+        </div>
+
+        <!-- List -->
+        <div class="items-grid items-grid-2col" id="med_list">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ ADD / EDIT MODAL ══ -->
+  <div class="modal-overlay" id="med_modal" onclick="handleModalClick(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="med_modal_title">
+      <div class="modal-header">
+        <div class="modal-title">
+          <div style="width:36px;height:36px;background:rgba(16,185,129,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--primary);">
+            <i class="fas fa-pills"></i>
+          </div>
+          <h3 id="med_modal_title">Add Medication</h3>
+        </div>
+        <button class="modal-close" onclick="Medications.closeModal()" aria-label="Close modal"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form id="med_form" onsubmit="Medications.saveForm(event)" novalidate>
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label class="form-label" for="med_name">Medication Name *</label>
+            <div class="input-wrapper">
+              <i class="fas fa-pills input-icon"></i>
+              <input type="text" id="med_name" class="form-input" placeholder="e.g. Amlodipine" required />
+            </div>
+            <span class="field-error" id="med_name_error"><i class="fas fa-circle-exclamation"></i></span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="med_dosage">Dosage</label>
+              <div class="input-wrapper">
+                <i class="fas fa-capsules input-icon"></i>
+                <input type="text" id="med_dosage" class="form-input" placeholder="e.g. 5mg" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="med_frequency">Frequency *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-repeat input-icon"></i>
+                <select id="med_frequency" class="form-input form-select" required>
+                  <option value="once">Once daily</option>
+                  <option value="twice">Twice daily</option>
+                  <option value="thrice">Three times daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              <span class="field-error" id="med_freq_error"><i class="fas fa-circle-exclamation"></i></span>
+            </div>
+          </div>
+
+          <!-- Times -->
+          <div class="form-group">
+            <label class="form-label">Times to Take</label>
+            <div id="times_container"></div>
+            <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="Medications.addTimeField()">
+              <i class="fas fa-plus"></i> Add Time
+            </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="med_start">Start Date</label>
+              <div class="input-wrapper">
+                <i class="fas fa-calendar input-icon" 
+                   onclick="openPicker('med_start')" 
+                   style="cursor:pointer; pointer-events:auto;" 
+                   title="Click to choose start date"></i>
+                <input type="date" id="med_start" class="form-input" style="cursor:pointer;" onclick="openPicker('med_start')" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="med_end">End Date</label>
+              <div class="input-wrapper">
+                <i class="fas fa-calendar-xmark input-icon" 
+                   onclick="openPicker('med_end')" 
+                   style="cursor:pointer; pointer-events:auto;" 
+                   title="Click to choose end date"></i>
+                <input type="date" id="med_end" class="form-input" style="cursor:pointer;" onclick="openPicker('med_end')" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="med_notes">Notes / Instructions</label>
+            <div class="input-wrapper">
+              <textarea id="med_notes" class="form-input form-textarea" placeholder="e.g. Take with food, avoid grapefruit…" style="padding:12px 14px;"></textarea>
+            </div>
+          </div>
+
+          <div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="med_status" class="toggle-input" checked />
+              <span class="toggle-track"></span>
+              Active medication
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="Medications.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Medication</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ CONFIRM DELETE MODAL ══ -->
+  <div class="modal-overlay" id="confirm_modal">
+    <div class="modal confirm-modal">
+      <div class="modal-body">
+        <div class="confirm-icon"><i class="fas fa-trash"></i></div>
+        <h3>Delete Medication?</h3>
+        <p>Are you sure you want to delete <strong id="delete_med_name"></strong>? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:16px;">
+        <button class="btn btn-ghost" onclick="Medications.cancelDelete()">Cancel</button>
+        <button class="btn btn-danger" onclick="Medications.doDelete()"><i class="fas fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/storage.js' %}"></script>
+  <script src="{% static 'js/auth.js' %}"></script>
+  <script src="{% static 'js/medications.js' %}"></script>
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => Medications.renderList());
+
+    function setMedFilter(filter, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Medications.renderList(filter, document.getElementById('med_search')?.value || '');
+    }
+
+    function openPicker(inputId) {
+      const el = typeof inputId === 'string' ? document.getElementById(inputId) : inputId;
+      if (!el) return;
+      if (typeof el.showPicker === 'function') {
+        try {
+          el.showPicker();
+          return;
+        } catch (err) {}
+      }
+      el.focus();
+    }
+
+    function handleModalClick(e) {
+      if (e.target === e.currentTarget) Medications.closeModal();
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

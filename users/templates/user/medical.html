@@ -1,0 +1,1042 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medical Records — Smart Elderly Care</title>
+  <meta name="description" content="Manage medical history, prescriptions, and consultation notes." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.4" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--bg-glass-border);
+      padding-bottom: 8px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .tab-btn.active { color: var(--primary); background: rgba(16,185,129,0.1); }
+    .tab-panel { animation: fadeIn 0.3s ease; }
+    .tab-panel.hidden { display: none; }
+
+    /* ══ HORIZONTAL SCROLL & LAYOUT CONSTRAINTS ══ */
+    .main-content {
+      flex: 1 1 0% !important;
+      min-width: 0 !important;
+      width: calc(100vw - var(--sidebar-width, 260px)) !important;
+      max-width: calc(100vw - var(--sidebar-width, 260px)) !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+    @media (max-width: 992px) {
+      .main-content {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin-left: 0 !important;
+      }
+    }
+    .page-content {
+      min-width: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+      padding: 24px 28px !important;
+    }
+
+    .medical-scroll-wrapper {
+      position: relative !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    /* ══ PROMINENT HORIZONTAL SCROLL BAR ══ */
+    .medical-horizontal-scroll {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      overflow-x: scroll !important; /* Force visible browser scrollbar */
+      overflow-y: hidden !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      gap: 20px !important;
+      padding: 12px 6px 24px 6px !important;
+      scroll-behavior: smooth !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: auto !important;
+      scrollbar-color: #10b981 rgba(255, 255, 255, 0.12) !important;
+    }
+    .medical-horizontal-scroll.is-dragging {
+      cursor: grabbing !important;
+      user-select: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Ultra-visible horizontal scroll bar track & thumb */
+    .medical-horizontal-scroll::-webkit-scrollbar {
+      height: 14px !important;
+      display: block !important;
+    }
+    .medical-horizontal-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.95) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 10px !important;
+      margin: 0 4px !important;
+    }
+    .medical-horizontal-scroll::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, #10b981, #059669) !important;
+      border-radius: 10px !important;
+      border: 2.5px solid rgba(15, 23, 42, 0.95) !important;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.6) !important;
+      cursor: grab !important;
+    }
+    .medical-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(90deg, #34d399, #10b981) !important;
+    }
+    .medical-horizontal-scroll::-webkit-scrollbar-thumb:active {
+      cursor: grabbing !important;
+    }
+
+    .medical-horizontal-scroll .item-card {
+      flex: 0 0 360px !important;
+      min-width: 360px !important;
+      max-width: 360px !important;
+      box-sizing: border-box !important;
+      scroll-snap-align: start;
+      margin-bottom: 0 !important;
+      min-height: 220px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+    }
+
+    .medical-horizontal-scroll .item-card .item-actions {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* Floating Navigation Side Arrows */
+    .floating-scroll-arrow {
+      position: absolute;
+      top: 48%;
+      transform: translateY(-50%);
+      z-index: 25;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(10, 15, 30, 0.92);
+      border: 2px solid var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(16, 185, 129, 0.4);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(8px);
+    }
+    .floating-scroll-arrow:hover {
+      background: var(--primary);
+      color: #fff;
+      transform: translateY(-50%) scale(1.12);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.7);
+    }
+    .floating-scroll-arrow.float-left { left: -16px; }
+    .floating-scroll-arrow.float-right { right: -16px; }
+    @media (max-width: 768px) {
+      .floating-scroll-arrow { display: none; }
+    }
+
+    /* Grid Mode fallback */
+    .medical-grid-mode {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+      gap: 20px !important;
+      overflow-x: visible !important;
+      width: 100% !important;
+    }
+    .medical-grid-mode .item-card {
+      flex: unset !important;
+      min-width: unset !important;
+      max-width: unset !important;
+    }
+
+    /* ══ STICKY BOTTOM HORIZONTAL SCROLLBAR CONTROLS BAR ══ */
+    .scroll-controls-bar {
+      position: sticky;
+      bottom: 16px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10, 15, 30, 0.94);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 12px 20px;
+      margin-top: 14px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.2);
+      transition: all var(--transition);
+    }
+    .scroll-progress-track {
+      flex: 1;
+      max-width: 260px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0 16px;
+      position: relative;
+    }
+    .scroll-progress-fill {
+      height: 100%;
+      width: 10%;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      border-radius: 10px;
+      transition: width 0.12s ease-out;
+    }
+
+    /* Type Filter Bar & Pills Horizontal Scrollbar */
+    .type-filter-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: scroll !important;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      scrollbar-width: auto !important;
+      scrollbar-color: #10b981 rgba(255, 255, 255, 0.12) !important;
+      scroll-behavior: smooth;
+    }
+    .type-filter-bar::-webkit-scrollbar {
+      height: 10px !important;
+      display: block !important;
+    }
+    .type-filter-bar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.95) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 8px !important;
+    }
+    .type-filter-bar::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, #10b981, #06b6d4) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5) !important;
+    }
+
+    .filter-pill {
+      background: var(--bg-glass);
+      border: 1px solid var(--bg-glass-border);
+      color: var(--text-secondary);
+      padding: 7px 14px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+      flex-shrink: 0;
+    }
+    .filter-pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+    .filter-pill.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(6, 182, 212, 0.25));
+      border-color: var(--primary);
+      color: var(--primary-light);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+    }
+    .sidebar-brand *, .sidebar-nav .nav-link * {
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text"><h3>ElderCare</h3><span>Smart Care System</span></div>
+        </a>
+      </div>
+
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email">{{ request.user.email }}</div>
+        </div>
+        <i class="fas fa-chevron-right" style="color:var(--text-muted);font-size:0.75rem;"></i>
+      </a>
+
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'elderly_activities' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-person-walking"></i></span>Activities</a>
+        <a href="{% url 'doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'elderly_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-phone-volume"></i></span>Emergency Contacts</a>
+        <a href="{% url 'notifications' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-bell"></i></span>Notifications</a>
+
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>🗂️ Medical Records</h2>
+            <p>Comprehensive health records, diagnostic tests, prescriptions, and clinical notes</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <a href="{% url 'notifications' %}" class="topbar-btn notif-btn" title="Notifications">
+            <i class="fas fa-bell"></i>
+          </a>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Tabs -->
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="history" onclick="Medical.switchTab('history')"><i class="fas fa-clock-rotate-left"></i> Medical History & Records</button>
+          <button class="tab-btn" data-tab="prescriptions" onclick="Medical.switchTab('prescriptions')"><i class="fas fa-prescription"></i> Prescriptions</button>
+          <button class="tab-btn" data-tab="notes" onclick="Medical.switchTab('notes')"><i class="fas fa-notes-medical"></i> Consultation Notes</button>
+        </div>
+
+        <div class="toolbar" style="margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+          <div class="search-box" style="flex: 1; min-width: 240px;">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="medical_search" placeholder="Search records by title, doctor, type, notes…" oninput="Medical.renderActiveTab(this.value)" />
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" class="btn btn-outline" id="viewToggleBtn" title="Toggle between Horizontal Scroll and Grid View">
+              <i class="fas fa-grid-2" id="viewToggleIcon"></i> <span id="viewToggleText">Grid View</span>
+            </button>
+            <div class="btn-group" style="display:inline-flex;">
+              <button type="button" class="btn btn-outline" id="topScrollLeftBtn" title="Scroll Left" style="padding: 9px 13px;">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <button type="button" class="btn btn-outline" id="topScrollRightBtn" title="Scroll Right" style="padding: 9px 13px;">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+            <button class="btn btn-primary" onclick="handleAddAction()" id="add_record_btn">
+              <i class="fas fa-plus"></i> <span class="hide-mobile">Add Record</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ TYPE FILTER PILLS BAR ══ -->
+        <div class="type-filter-bar" id="history_type_filters">
+          <button type="button" class="filter-pill active" data-type="all" onclick="Medical.filterByType('all')">
+            <i class="fas fa-list"></i> All Types
+          </button>
+          <button type="button" class="filter-pill" data-type="condition" onclick="Medical.filterByType('condition')">
+            <i class="fas fa-heart-crack"></i> Chronic Conditions
+          </button>
+          <button type="button" class="filter-pill" data-type="lab_test" onclick="Medical.filterByType('lab_test')">
+            <i class="fas fa-flask-vial"></i> Lab & Blood Tests
+          </button>
+          <button type="button" class="filter-pill" data-type="imaging" onclick="Medical.filterByType('imaging')">
+            <i class="fas fa-x-ray"></i> Imaging & Scans
+          </button>
+          <button type="button" class="filter-pill" data-type="vitals" onclick="Medical.filterByType('vitals')">
+            <i class="fas fa-wave-square"></i> Vital Signs
+          </button>
+          <button type="button" class="filter-pill" data-type="surgery" onclick="Medical.filterByType('surgery')">
+            <i class="fas fa-scalpel"></i> Surgeries
+          </button>
+          <button type="button" class="filter-pill" data-type="allergy" onclick="Medical.filterByType('allergy')">
+            <i class="fas fa-triangle-exclamation"></i> Allergies
+          </button>
+          <button type="button" class="filter-pill" data-type="vaccination" onclick="Medical.filterByType('vaccination')">
+            <i class="fas fa-syringe"></i> Vaccinations
+          </button>
+          <button type="button" class="filter-pill" data-type="therapy" onclick="Medical.filterByType('therapy')">
+            <i class="fas fa-person-walking-with-cane"></i> Therapy & Rehab
+          </button>
+          <button type="button" class="filter-pill" data-type="cognitive" onclick="Medical.filterByType('cognitive')">
+            <i class="fas fa-brain"></i> Memory & Neuro
+          </button>
+          <button type="button" class="filter-pill" data-type="vision" onclick="Medical.filterByType('vision')">
+            <i class="fas fa-eye"></i> Vision & Eyes
+          </button>
+          <button type="button" class="filter-pill" data-type="dental" onclick="Medical.filterByType('dental')">
+            <i class="fas fa-tooth"></i> Dental & Oral
+          </button>
+          <button type="button" class="filter-pill" data-type="hearing" onclick="Medical.filterByType('hearing')">
+            <i class="fas fa-ear-listen"></i> Hearing
+          </button>
+          <button type="button" class="filter-pill" data-type="device" onclick="Medical.filterByType('device')">
+            <i class="fas fa-wheelchair"></i> Medical Devices
+          </button>
+          <button type="button" class="filter-pill" data-type="nutrition" onclick="Medical.filterByType('nutrition')">
+            <i class="fas fa-apple-whole"></i> Nutrition & Diet
+          </button>
+          <button type="button" class="filter-pill" data-type="psychological" onclick="Medical.filterByType('psychological')">
+            <i class="fas fa-spa"></i> Mental Wellness
+          </button>
+          <button type="button" class="filter-pill" data-type="hospitalization" onclick="Medical.filterByType('hospitalization')">
+            <i class="fas fa-bed-pulse"></i> Hospitalizations
+          </button>
+          <button type="button" class="filter-pill" data-type="emergency" onclick="Medical.filterByType('emergency')">
+            <i class="fas fa-truck-medical"></i> Emergencies
+          </button>
+          <button type="button" class="filter-pill" data-type="other" onclick="Medical.filterByType('other')">
+            <i class="fas fa-file-medical"></i> Other
+          </button>
+        </div>
+
+        <!-- ══ HORIZONTAL SCROLL CARDS WRAPPER ══ -->
+        <div class="medical-scroll-wrapper" id="medicalScrollWrapper">
+          <button type="button" class="floating-scroll-arrow float-left" id="floatScrollLeftBtn" title="Scroll Left">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button type="button" class="floating-scroll-arrow float-right" id="floatScrollRightBtn" title="Scroll Right">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+
+          <!-- History Panel -->
+          <div id="tab_history" class="tab-panel">
+            <div class="medical-horizontal-scroll" id="history_list"></div>
+          </div>
+
+          <!-- Prescriptions Panel -->
+          <div id="tab_prescriptions" class="tab-panel hidden">
+            <div class="medical-horizontal-scroll" id="rx_list"></div>
+          </div>
+
+          <!-- Notes Panel -->
+          <div id="tab_notes" class="tab-panel hidden">
+            <div class="medical-horizontal-scroll" id="notes_list"></div>
+          </div>
+        </div>
+
+        <!-- ══ STICKY BOTTOM HORIZONTAL SCROLLBAR CONTROLS BAR ══ -->
+        <div class="scroll-controls-bar" id="scrollControlsBar">
+          <div style="display:flex; align-items:center; gap:12px; font-size:0.85rem; color:var(--text-secondary);">
+            <div style="width:32px; height:32px; border-radius:8px; background:rgba(16,185,129,0.15); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:1rem; flex-shrink:0;">
+              <i class="fas fa-arrows-left-right"></i>
+            </div>
+            <div>
+              <strong style="color:var(--text-primary);">Horizontal Scroll Bar</strong>
+              <div style="font-size:0.78rem; color:var(--text-muted);" id="scrollHelperText">Scroll horizontally at the bottom, drag records, or click arrows to view all items</div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button type="button" class="btn btn-outline btn-sm" id="bottomScrollLeftBtn" style="width:32px; height:32px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;" title="Scroll Left">
+                <i class="fas fa-chevron-left" style="font-size:0.75rem;"></i>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="bottomScrollRightBtn" style="width:32px; height:32px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;" title="Scroll Right">
+                <i class="fas fa-chevron-right" style="font-size:0.75rem;"></i>
+              </button>
+            </div>
+            <div class="scroll-progress-track" title="Horizontal Scroll Progress">
+              <div id="scrollProgressFill" class="scroll-progress-fill"></div>
+            </div>
+            <span id="scrollCounterText" style="font-size:0.82rem; font-weight:700; color:var(--primary); min-width:85px; text-align:right;">
+              1 of 1
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ MODALS ══ -->
+
+  <!-- History Modal -->
+  <div class="modal-overlay" id="history_modal" onclick="if(event.target===this)Medical.closeHistoryModal()">
+    <div class="modal" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title"><h3 id="history_modal_title">Add Medical Record</h3></div>
+        <button class="modal-close" onclick="Medical.closeHistoryModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="history_form" onsubmit="Medical.saveHistory(event)" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="h_title">Record Title / Condition / Procedure *</label>
+            <input type="text" id="h_title" class="form-input" placeholder="e.g. HbA1c Lab Report, Knee Arthroscopy, Stage 1 Hypertension" required />
+            <span class="field-error" id="h_title_error"><i class="fas fa-circle-exclamation"></i></span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="h_type">Record Type *</label>
+              <select id="h_type" class="form-input form-select" required>
+                <option value="condition">❤️ Chronic Condition</option>
+                <option value="lab_test">🧪 Lab & Blood Test (CBC, HbA1c, etc.)</option>
+                <option value="imaging">🩻 Diagnostic Imaging (X-Ray, MRI, CT, ECG)</option>
+                <option value="vitals">📊 Vital Signs & Monitoring (BP, Sugar, SpO2)</option>
+                <option value="surgery">🔪 Surgery & Surgical Procedure</option>
+                <option value="allergy">⚠️ Allergy & Adverse Drug Reaction</option>
+                <option value="vaccination">💉 Vaccination & Immunization</option>
+                <option value="therapy">🚶 Physical Therapy & Rehabilitation</option>
+                <option value="cognitive">🧠 Cognitive & Memory Assessment</option>
+                <option value="vision">👁️ Vision & Ophthalmology</option>
+                <option value="dental">🦷 Dental & Oral Health</option>
+                <option value="hearing">👂 Hearing & Audiology Exam</option>
+                <option value="device">♿ Medical Device & Equipment</option>
+                <option value="nutrition">🥗 Dietary & Nutritional Plan</option>
+                <option value="psychological">🌿 Mental & Emotional Wellness</option>
+                <option value="hospitalization">🏥 Hospitalization & Discharge</option>
+                <option value="emergency">🚨 Emergency & Urgent Incident</option>
+                <option value="other">📋 General / Other Record</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="h_severity">Severity / Status</label>
+              <select id="h_severity" class="form-input form-select">
+                <option value="">None / Routine</option>
+                <option value="mild">Mild / Controlled</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe / High Priority</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="h_date">Record Date / Event Date</label>
+              <input type="date" id="h_date" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="h_doctor">Doctor / Clinician (Optional)</label>
+              <input type="text" id="h_doctor" class="form-input" placeholder="e.g. Dr. Rajesh Sharma" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="h_notes">Clinical Notes / Test Results / Advice</label>
+            <textarea id="h_notes" class="form-input form-textarea" rows="3" placeholder="Enter test values, doctor's recommendations, dosages, or progress notes..."></textarea>
+          </div>
+
+          <label class="toggle-switch">
+            <input type="checkbox" id="h_ongoing" class="toggle-input" checked />
+            <span class="toggle-track"></span> Active / Ongoing Condition or Plan
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="Medical.closeHistoryModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Prescription Modal -->
+  <div class="modal-overlay" id="rx_modal" onclick="if(event.target===this)Medical.closeRxModal()">
+    <div class="modal" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title"><h3 id="rx_modal_title">Add Prescription</h3></div>
+        <button class="modal-close" onclick="Medical.closeRxModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="rx_form" onsubmit="Medical.saveRx(event)" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="rx_doctor">Prescribing Doctor</label>
+              <input type="text" id="rx_doctor" class="form-input" placeholder="Dr. Name or select doctor" list="rx_doctor_list" />
+              <datalist id="rx_doctor_list">
+                {% for doc in doctors %}
+                <option value="{{ doc.full_name }} ({{ doc.specialization }})"></option>
+                {% endfor %}
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="rx_date">Date Prescribed</label>
+              <input type="date" id="rx_date" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rx_diagnosis">Diagnosis / Indication</label>
+            <input type="text" id="rx_diagnosis" class="form-input" placeholder="e.g. Post-surgery care, Routine checkup" />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Medications</label>
+            <div id="rx_meds_container"></div>
+            <button type="button" class="btn btn-ghost btn-sm mt-2" onclick="Medical.addMedRow()">
+              <i class="fas fa-plus"></i> Add Medication
+            </button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="rx_valid">Valid Until</label>
+              <input type="date" id="rx_valid" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rx_notes">Additional Instructions</label>
+            <textarea id="rx_notes" class="form-input form-textarea" placeholder="Dietary restrictions, warnings..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="Medical.closeRxModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Prescription</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Consult Note Modal -->
+  <div class="modal-overlay" id="note_modal" onclick="if(event.target===this)Medical.closeNoteModal()">
+    <div class="modal" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title"><h3 id="note_modal_title">Add Consultation Note</h3></div>
+        <button class="modal-close" onclick="Medical.closeNoteModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="note_form" onsubmit="Medical.saveNote(event)" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="note_summary">Summary / Subject *</label>
+            <input type="text" id="note_summary" class="form-input" placeholder="e.g. Monthly Geriatric Checkup" required />
+            <span class="field-error" id="note_summary_error"><i class="fas fa-circle-exclamation"></i></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="note_doctor">Consulting Doctor</label>
+              <input type="text" id="note_doctor" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="note_date">Date of Visit</label>
+              <input type="date" id="note_date" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="note_hospital">Hospital / Clinic</label>
+            <input type="text" id="note_hospital" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="note_findings">Doctor's Findings</label>
+            <textarea id="note_findings" class="form-input form-textarea" placeholder="Symptoms reported, vitals, general observations..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="note_advice">Doctor's Advice / Plan</label>
+            <textarea id="note_advice" class="form-input form-textarea" placeholder="Recommended lifestyle changes, next steps..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="note_followup">Follow-up Date</label>
+            <input type="date" id="note_followup" class="form-input" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="Medical.closeNoteModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="confirm_med_modal">
+    <div class="modal confirm-modal">
+      <div class="modal-body">
+        <div class="confirm-icon"><i class="fas fa-trash"></i></div>
+        <h3>Delete Record?</h3>
+        <p>Are you sure you want to delete <strong id="delete_med_name"></strong>? This cannot be undone.</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:16px;">
+        <button class="btn btn-ghost" onclick="Medical.cancelDelete()">Cancel</button>
+        <button class="btn btn-danger" onclick="Medical.doDelete()"><i class="fas fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__CURRENT_USER = {
+      id: "usr_{{ request.user.id }}",
+      name: "{{ request.user.get_full_name|default:request.user.username|escapejs }}",
+      email: "{{ request.user.email|escapejs }}",
+      role: "elderly"
+    };
+  </script>
+
+  <script id="server_records" type="application/json">
+  [
+    {% for r in records %}
+    {
+      "id": "{{ r.id }}",
+      "title": "{{ r.title|escapejs }}",
+      "type": "other",
+      "severity": "mild",
+      "diagnosedDate": "{{ r.record_date|date:'Y-m-d' }}",
+      "doctor": "{% if r.doctor %}{{ r.doctor.doctor_profile.full_name|default:r.doctor.get_full_name|default:r.doctor.username|escapejs }}{% else %}Clinician{% endif %}",
+      "notes": "{{ r.notes|escapejs }}{% if r.treatment_advice %} Advice: {{ r.treatment_advice|escapejs }}{% endif %}",
+      "ongoing": true
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+  </script>
+
+  <script id="server_prescriptions" type="application/json">
+  [
+    {% for rx in prescriptions %}
+    {
+      "id": "{{ rx.id }}",
+      "doctor": "{% if rx.doctor %}{{ rx.doctor.doctor_profile.full_name|default:rx.doctor.get_full_name|default:rx.doctor.username|escapejs }}{% else %}Self-Reported{% endif %}",
+      "date": "{{ rx.created_at|date:'Y-m-d' }}",
+      "diagnosis": "{% if rx.notes %}{{ rx.notes|truncatewords:6|escapejs }}{% else %}Prescription #{{ rx.id }}{% endif %}",
+      "notes": "{{ rx.notes|escapejs }}",
+      "medications": [{% for m in rx.medicines.all %}"{{ m.medicine_name|escapejs }} {{ m.dosage|escapejs }} ({{ m.frequency|escapejs }})"{% if not forloop.last %},{% endif %}{% endfor %}]
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+  </script>
+
+  <script id="server_notes" type="application/json">
+  [
+    {% for c in consultations %}
+    {
+      "id": "{{ c.id }}",
+      "summary": "{{ c.diagnosis|truncatewords:6|escapejs }}",
+      "doctor": "{{ c.doctor.doctor_profile.full_name|default:c.doctor.get_full_name|default:c.doctor.username|escapejs }}",
+      "date": "{{ c.consultation_date|date:'Y-m-d' }}",
+      "hospital": "{{ c.doctor.doctor_profile.hospital_affiliation|default:'Care Clinic'|escapejs }}",
+      "findings": "{{ c.symptoms|escapejs }}",
+      "advice": "{{ c.treatment_advice|escapejs }}",
+      "followUp": "{% if c.follow_up_date %}{{ c.follow_up_date|date:'Y-m-d' }}{% endif %}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+  </script>
+
+  <script src="{% static 'js/storage.js' %}"></script>
+  <script src="{% static 'js/auth.js' %}"></script>
+  <script src="{% static 'js/notifications.js' %}"></script>
+  <script src="{% static 'js/medical.js' %}"></script>
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Ensure session is set for Storage
+      if (window.__CURRENT_USER && !sessionStorage.getItem('eldc_session')) {
+        Storage.setSession(window.__CURRENT_USER);
+      }
+
+      // Sync server-side prescriptions into Storage
+      const serverRxEl = document.getElementById('server_prescriptions');
+      if (serverRxEl) {
+        try {
+          const serverRx = JSON.parse(serverRxEl.textContent);
+          if (Array.isArray(serverRx) && serverRx.length > 0) {
+            const local = Storage.getPrescriptions();
+            serverRx.forEach(rx => {
+              const existing = local.find(l => String(l.id) === String(rx.id));
+              if (!existing) {
+                Storage.addPrescription(rx);
+              } else {
+                Storage.updatePrescription(rx.id, rx);
+              }
+            });
+          }
+        } catch(e) {
+          console.error("Error syncing server prescriptions", e);
+        }
+      }
+
+      // Sync server-side records
+      const serverRecEl = document.getElementById('server_records');
+      if (serverRecEl) {
+        try {
+          const serverRec = JSON.parse(serverRecEl.textContent);
+          if (Array.isArray(serverRec) && serverRec.length > 0) {
+            const local = Storage.getMedicalHistory();
+            serverRec.forEach(rec => {
+              const existing = local.find(l => String(l.id) === String(rec.id));
+              if (!existing) {
+                Storage.addMedicalHistory(rec);
+              }
+            });
+          }
+        } catch(e) {
+          console.error("Error syncing server records", e);
+        }
+      }
+
+      // Sync server-side consultation notes
+      const serverNotesEl = document.getElementById('server_notes');
+      if (serverNotesEl) {
+        try {
+          const serverNotes = JSON.parse(serverNotesEl.textContent);
+          if (Array.isArray(serverNotes) && serverNotes.length > 0) {
+            const local = Storage.getConsultNotes();
+            serverNotes.forEach(cn => {
+              const existing = local.find(l => String(l.id) === String(cn.id));
+              if (!existing) {
+                Storage.addConsultNote(cn);
+              }
+            });
+          }
+        } catch(e) {
+          console.error("Error syncing server notes", e);
+        }
+      }
+
+      // Check URL query param or route to switch tab
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'prescriptions' || window.location.pathname.includes('/prescriptions')) {
+        Medical.switchTab('prescriptions');
+      } else if (tabParam === 'notes') {
+        Medical.switchTab('notes');
+      } else {
+        Medical.renderActiveTab();
+      }
+
+      if (window.Notifications && typeof Notifications.updateBadge === 'function') {
+        Notifications.updateBadge();
+      }
+
+      // ══════════════════════════════════════════════════════════
+      //  HORIZONTAL SCROLLBAR CONTROLS & INTERACTION
+      // ══════════════════════════════════════════════════════════
+      const scrollProgressFill = document.getElementById('scrollProgressFill');
+      const scrollCounterText = document.getElementById('scrollCounterText');
+      const scrollControlsBar = document.getElementById('scrollControlsBar');
+      const floatScrollLeftBtn = document.getElementById('floatScrollLeftBtn');
+      const floatScrollRightBtn = document.getElementById('floatScrollRightBtn');
+      const bottomScrollLeftBtn = document.getElementById('bottomScrollLeftBtn');
+      const bottomScrollRightBtn = document.getElementById('bottomScrollRightBtn');
+      const topScrollLeftBtn = document.getElementById('topScrollLeftBtn');
+      const topScrollRightBtn = document.getElementById('topScrollRightBtn');
+      const viewToggleBtn = document.getElementById('viewToggleBtn');
+      const viewToggleIcon = document.getElementById('viewToggleIcon');
+      const viewToggleText = document.getElementById('viewToggleText');
+
+      const cardWidth = 380; // card 360px + 20px gap
+
+      function getActiveContainer() {
+        const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'history';
+        if (activeTab === 'history') return document.getElementById('history_list');
+        if (activeTab === 'prescriptions') return document.getElementById('rx_list');
+        if (activeTab === 'notes') return document.getElementById('notes_list');
+        return document.getElementById('history_list');
+      }
+
+      function updateScrollIndicators() {
+        const container = getActiveContainer();
+        if (!container) return;
+        const cards = container.querySelectorAll('.item-card');
+        const total = cards.length;
+        if (total === 0) {
+          if (scrollProgressFill) scrollProgressFill.style.width = '0%';
+          if (scrollCounterText) scrollCounterText.textContent = '0 items';
+          return;
+        }
+
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (maxScroll <= 0) {
+          if (scrollProgressFill) scrollProgressFill.style.width = '100%';
+          if (scrollCounterText) scrollCounterText.textContent = `All ${total}`;
+          return;
+        }
+
+        const scrollPercent = Math.min(100, Math.max(5, (container.scrollLeft / maxScroll) * 100));
+        if (scrollProgressFill) {
+          scrollProgressFill.style.width = scrollPercent + '%';
+        }
+
+        const currentIndex = Math.min(total, Math.max(1, Math.round(container.scrollLeft / cardWidth) + 1));
+        if (scrollCounterText) {
+          scrollCounterText.textContent = `${currentIndex} of ${total}`;
+        }
+      }
+
+      function scrollLeftAction() {
+        const container = getActiveContainer();
+        if (container) container.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+      }
+      function scrollRightAction() {
+        const container = getActiveContainer();
+        if (container) container.scrollBy({ left: cardWidth, behavior: 'smooth' });
+      }
+
+      if (topScrollLeftBtn) topScrollLeftBtn.addEventListener('click', scrollLeftAction);
+      if (topScrollRightBtn) topScrollRightBtn.addEventListener('click', scrollRightAction);
+      if (floatScrollLeftBtn) floatScrollLeftBtn.addEventListener('click', scrollLeftAction);
+      if (floatScrollRightBtn) floatScrollRightBtn.addEventListener('click', scrollRightAction);
+      if (bottomScrollLeftBtn) bottomScrollLeftBtn.addEventListener('click', scrollLeftAction);
+      if (bottomScrollRightBtn) bottomScrollRightBtn.addEventListener('click', scrollRightAction);
+
+      // Mouse drag and mouse wheel on all 3 list containers
+      ['history_list', 'rx_list', 'notes_list'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('scroll', updateScrollIndicators);
+
+        el.addEventListener('wheel', function(e) {
+          if (el.classList.contains('medical-horizontal-scroll') && e.deltaY !== 0) {
+            e.preventDefault();
+            el.scrollLeft += e.deltaY * 1.5;
+          }
+        }, { passive: false });
+
+        let isDown = false;
+        let startX;
+        let scrollLeftVal;
+
+        el.addEventListener('mousedown', function(e) {
+          if (e.target.closest('a') || e.target.closest('button') || e.target.closest('input')) return;
+          isDown = true;
+          el.classList.add('is-dragging');
+          startX = e.pageX - el.offsetLeft;
+          scrollLeftVal = el.scrollLeft;
+        });
+
+        window.addEventListener('mouseup', function() {
+          isDown = false;
+          el.classList.remove('is-dragging');
+        });
+
+        el.addEventListener('mousemove', function(e) {
+          if (!isDown) return;
+          e.preventDefault();
+          const x = e.pageX - el.offsetLeft;
+          const walk = (x - startX) * 1.5;
+          el.scrollLeft = scrollLeftVal - walk;
+        });
+      });
+
+      // Filter bar wheel scroll
+      const filterBar = document.getElementById('history_type_filters');
+      if (filterBar) {
+        filterBar.addEventListener('wheel', function(e) {
+          if (e.deltaY !== 0) {
+            e.preventDefault();
+            filterBar.scrollLeft += e.deltaY * 1.2;
+          }
+        }, { passive: false });
+      }
+
+      // View Mode Toggle (Horizontal Scroll vs Grid)
+      let isHorizontalMode = true;
+      if (viewToggleBtn) {
+        viewToggleBtn.addEventListener('click', function() {
+          isHorizontalMode = !isHorizontalMode;
+          const containers = [
+            document.getElementById('history_list'),
+            document.getElementById('rx_list'),
+            document.getElementById('notes_list')
+          ];
+          containers.forEach(c => {
+            if (!c) return;
+            if (isHorizontalMode) {
+              c.classList.remove('medical-grid-mode');
+              c.classList.add('medical-horizontal-scroll');
+            } else {
+              c.classList.remove('medical-horizontal-scroll');
+              c.classList.add('medical-grid-mode');
+            }
+          });
+
+          if (isHorizontalMode) {
+            if (floatScrollLeftBtn) floatScrollLeftBtn.style.display = '';
+            if (floatScrollRightBtn) floatScrollRightBtn.style.display = '';
+            if (scrollControlsBar) scrollControlsBar.style.display = '';
+            if (viewToggleIcon) viewToggleIcon.className = 'fas fa-grid-2';
+            if (viewToggleText) viewToggleText.textContent = 'Grid View';
+          } else {
+            if (floatScrollLeftBtn) floatScrollLeftBtn.style.display = 'none';
+            if (floatScrollRightBtn) floatScrollRightBtn.style.display = 'none';
+            if (scrollControlsBar) scrollControlsBar.style.display = 'none';
+            if (viewToggleIcon) viewToggleIcon.className = 'fas fa-arrows-left-right';
+            if (viewToggleText) viewToggleText.textContent = 'Horizontal Scroll View';
+          }
+          updateScrollIndicators();
+        });
+      }
+
+      // Hook Medical module tab rendering to refresh indicators
+      if (window.Medical) {
+        const origSwitchTab = Medical.switchTab;
+        Medical.switchTab = function(tab) {
+          origSwitchTab(tab);
+          setTimeout(updateScrollIndicators, 60);
+        };
+        const origRender = Medical.renderActiveTab;
+        Medical.renderActiveTab = function(q) {
+          origRender(q);
+          setTimeout(updateScrollIndicators, 60);
+        };
+      }
+
+      setTimeout(updateScrollIndicators, 120);
+    });
+
+    function handleAddAction() {
+      const activeBtn = document.querySelector('.tab-btn.active');
+      const tab = activeBtn ? activeBtn.dataset.tab : 'history';
+      if (tab === 'history') Medical.openHistoryModal();
+      else if (tab === 'prescriptions') Medical.openRxModal();
+      else if (tab === 'notes') Medical.openNoteModal();
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

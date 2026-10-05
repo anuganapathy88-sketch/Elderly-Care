@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergency Contacts — Smart Elderly Care</title>
+  <meta name="description" content="Manage emergency contacts for quick access during critical situations." />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2.4" />
+  <link rel="stylesheet" href="{% static 'css/modules.css' %}?v=2.4" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .sidebar-brand *, .sidebar-nav .nav-link * {
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'elderly_dashboard' %}" class="sidebar-brand">
+          <div class="sidebar-logo"><i class="fas fa-heart-pulse"></i></div>
+          <div class="sidebar-brand-text"><h3>ElderCare</h3><span>Smart Care System</span></div>
+        </a>
+      </div>
+      <a href="{% url 'elderly_profile' %}" class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:1.1rem;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;border-radius:50%;color:white;font-weight:700;">
+          {{ request.user.username|first|upper }}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email }}</div>
+        </div>
+      </a>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Main</span>
+        <a href="{% url 'elderly_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'elderly_profile' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-circle"></i></span>My Profile</a>
+        <span class="nav-section-label">Care Management</span>
+        <a href="{% url 'elderly_prescriptions' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medications</a>
+        <a href="{% url 'elderly_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
+        <a href="{% url 'elderly_activities' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-person-walking"></i></span>Activities</a>
+        <span class="nav-section-label">Health</span>
+        <a href="{% url 'doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Find Doctors</a>
+        <a href="{% url 'elderly_medical' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'elderly_emergency' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-phone-volume"></i></span>Emergency Contacts</a>
+        <span class="nav-section-label">Account</span>
+        <a href="{% url 'change_password' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-shield-alt"></i></span>Change Password</a>
+      </nav>
+      <div class="sidebar-footer">
+        <form method="POST" action="{% url 'logout' %}" style="margin:0; width:100%;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-logout" style="width:100%; text-align:left; background:none; border:none; cursor:pointer;">
+            <span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>📞 Emergency Contacts</h2>
+            <p>Quick access contacts for emergencies</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-danger btn-sm" onclick="Emergency.openModal()" id="add_ec_btn"
+                  style="background:linear-gradient(135deg,var(--danger),#c0392b);">
+            <i class="fas fa-plus"></i> <span class="hide-mobile">Add Contact</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Emergency Banner -->
+        <div style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.05));border:1px solid rgba(239,68,68,0.25);border-radius:var(--radius-xl);padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;animation:fadeInUp 0.4s ease both;">
+          <div style="width:48px;height:48px;background:rgba(239,68,68,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--danger);font-size:1.3rem;flex-shrink:0;animation:pulse-ring 2s ease infinite;">
+            <i class="fas fa-phone-volume"></i>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">Emergency Quick Access</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">Contacts marked as Primary are shown first. Tap the phone icon to call directly.</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0;">
+            <a href="tel:102" class="btn btn-sm" style="background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3);">
+              <i class="fas fa-ambulance"></i> 102
+            </a>
+            <a href="tel:100" class="btn btn-sm" style="background:rgba(59,130,246,0.15);color:var(--info);border:1px solid rgba(59,130,246,0.3);">
+              <i class="fas fa-shield-halved"></i> 100
+            </a>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="module-stats">
+          <div class="module-stat delay-1">
+            <div class="ms-value" id="ec_total" style="color:var(--primary)">0</div>
+            <div class="ms-label">Total Contacts</div>
+          </div>
+          <div class="module-stat delay-2">
+            <div class="ms-value" id="ec_primary" style="color:var(--danger)">0</div>
+            <div class="ms-label">Primary</div>
+          </div>
+          <div class="module-stat delay-3">
+            <div class="ms-value" id="ec_doctors" style="color:var(--success)">0</div>
+            <div class="ms-label">Doctors</div>
+          </div>
+          <div class="module-stat delay-4">
+            <div class="ms-value" id="ec_family" style="color:var(--accent)">0</div>
+            <div class="ms-label">Family</div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="ec_search" placeholder="Search by name, relationship, phone…" oninput="Emergency.renderList(this.value)" />
+          </div>
+        </div>
+
+        <!-- List -->
+        <div class="items-grid items-grid-2col" id="ec_list"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ ADD/EDIT MODAL ══ -->
+  <div class="modal-overlay" id="ec_modal" onclick="if(event.target===this)Emergency.closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <div style="width:36px;height:36px;background:rgba(239,68,68,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--danger);">
+            <i class="fas fa-phone-volume"></i>
+          </div>
+          <h3 id="ec_modal_title">Add Emergency Contact</h3>
+        </div>
+        <button class="modal-close" onclick="Emergency.closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form id="ec_form" onsubmit="Emergency.saveForm(event)" novalidate>
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label class="form-label" for="ec_name">Full Name *</label>
+            <div class="input-wrapper">
+              <i class="fas fa-user input-icon"></i>
+              <input type="text" id="ec_name" class="form-input" placeholder="Contact's full name" required />
+            </div>
+            <span class="field-error" id="ec_name_error"><i class="fas fa-circle-exclamation"></i></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ec_relationship">Relationship</label>
+            <div class="input-wrapper">
+              <i class="fas fa-people-arrows input-icon"></i>
+              <select id="ec_relationship" class="form-input form-select">
+                <option value="">Select relationship</option>
+                <option value="son">Son</option>
+                <option value="daughter">Daughter</option>
+                <option value="spouse">Spouse / Partner</option>
+                <option value="sibling">Sibling</option>
+                <option value="doctor">Doctor</option>
+                <option value="caregiver">Caregiver</option>
+                <option value="neighbour">Neighbour</option>
+                <option value="friend">Friend</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label" for="ec_phone">Primary Phone *</label>
+              <div class="input-wrapper">
+                <i class="fas fa-phone input-icon"></i>
+                <input type="tel" id="ec_phone" class="form-input" placeholder="10-digit number" maxlength="15" required />
+              </div>
+              <span class="field-error" id="ec_phone_error"><i class="fas fa-circle-exclamation"></i></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ec_phone2">Alternate Phone</label>
+              <div class="input-wrapper">
+                <i class="fas fa-phone input-icon"></i>
+                <input type="tel" id="ec_phone2" class="form-input" placeholder="Optional" maxlength="15" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ec_email">Email Address</label>
+            <div class="input-wrapper">
+              <i class="fas fa-envelope input-icon"></i>
+              <input type="email" id="ec_email" class="form-input" placeholder="Optional email" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="ec_notes">Notes</label>
+            <textarea id="ec_notes" class="form-input form-textarea" placeholder="e.g. Lives nearby, available 24/7…" style="padding:12px 14px;"></textarea>
+          </div>
+
+          <div style="padding:14px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-md);">
+            <label class="toggle-switch">
+              <input type="checkbox" id="ec_primary" class="toggle-input" />
+              <span class="toggle-track" style="background:var(--bg-glass-border);"></span>
+              <span>Mark as <strong style="color:var(--danger)">Primary Emergency Contact</strong></span>
+            </label>
+            <p class="text-xs text-muted mt-1" style="margin-left:52px;">Only one contact can be primary at a time.</p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="Emergency.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Contact</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ CONFIRM DELETE ══ -->
+  <div class="modal-overlay" id="confirm_ec_modal">
+    <div class="modal confirm-modal">
+      <div class="modal-body">
+        <div class="confirm-icon"><i class="fas fa-trash"></i></div>
+        <h3>Remove Contact?</h3>
+        <p>Remove <strong id="delete_ec_name"></strong> from emergency contacts?</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;gap:16px;">
+        <button class="btn btn-ghost" onclick="Emergency.cancelDelete()">Cancel</button>
+        <button class="btn btn-danger" onclick="Emergency.doDelete()"><i class="fas fa-trash"></i> Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/storage.js' %}"></script>
+  <script src="{% static 'js/auth.js' %}"></script>
+  <script src="{% static 'js/emergency.js' %}"></script>
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => Emergency.renderList());
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>
