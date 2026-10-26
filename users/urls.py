@@ -7,6 +7,10 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('login-redirect/', views.login_redirect_view, name='login_redirect'),
     path('logout/', views.logout_view, name='logout'),
+    path('guest-login/', views.guest_login_view, name='guest_login'),
+    path('continue-without-registration/', views.guest_login_view, name='continue_without_registration'),
+    path('admin-login/', views.admin_login_view, name='admin_login'),
+    path('admin/', views.admin_login_view, name='admin_shortcut'),
     path('register/', views.register_elderly, name='register_elderly'),
     path('doctor/register/', views.register_doctor, name='register_doctor'),
     path('change-password/', views.change_password_view, name='change_password'),
@@ -55,6 +59,30 @@ urlpatterns = [
     path('admin-portal/appointments/<int:appointment_id>/cancel/', views.admin_appointment_cancel, name='admin_appointment_cancel'),
     path('admin-portal/records/', views.admin_records_view, name='admin_records'),
     path('admin-portal/reports/', views.admin_reports_view, name='admin_reports'),
+    path('admin-portal/settings/', views.admin_settings_view, name='admin_settings'),
+    path('admin/settings/', views.admin_settings_view),
+
+    # Admin Operations Modules (Emergency, Feedback, Medicine, Payments, Health Assistant)
+    path('admin-portal/emergency/', views.admin_emergency_view, name='admin_emergency'),
+    path('admin-portal/emergency/<int:alert_id>/status/', views.admin_emergency_update_status, name='admin_emergency_update_status'),
+    path('admin-portal/emergency/create/', views.admin_emergency_create, name='admin_emergency_create'),
+
+    path('admin-portal/feedback/', views.admin_feedback_view, name='admin_feedback'),
+    path('admin-portal/feedback/<int:feedback_id>/reply/', views.admin_feedback_reply, name='admin_feedback_reply'),
+    path('admin-portal/feedback/<int:feedback_id>/delete/', views.admin_feedback_delete, name='admin_feedback_delete'),
+
+    path('admin-portal/medicine-reminders/', views.admin_medicine_reminders_view, name='admin_medicine_reminders'),
+    path('admin-portal/medicine-reminders/add/', views.admin_medicine_reminder_add, name='admin_medicine_reminder_add'),
+    path('admin-portal/medicine-reminders/<int:reminder_id>/toggle/', views.admin_medicine_reminder_toggle, name='admin_medicine_reminder_toggle'),
+    path('admin-portal/medicine-reminders/<int:reminder_id>/notify/', views.admin_medicine_reminder_send_ping, name='admin_medicine_reminder_send_ping'),
+    path('admin-portal/medicine-reminders/<int:reminder_id>/delete/', views.admin_medicine_reminder_delete, name='admin_medicine_reminder_delete'),
+
+    path('admin-portal/payments/', views.admin_payments_view, name='admin_payments'),
+    path('admin-portal/payments/record/', views.admin_payment_record, name='admin_payment_record'),
+    path('admin-portal/payments/<int:payment_id>/status/', views.admin_payment_update_status, name='admin_payment_update_status'),
+    path('admin-portal/payments/<int:payment_id>/json/', views.admin_payment_detail_json, name='admin_payment_detail_json'),
+
+    path('admin-portal/health-assistant/', views.admin_health_assistant_view, name='admin_health_assistant'),
 
     # Activities & Emergency Modules
     path('elderly/activities/', views.activities_view, name='elderly_activities'),
@@ -93,6 +121,14 @@ urlpatterns = [
     re_path(r'.*doctor-patients\.html$', views.redirect_doctor_patients, name='redirect_doctor_patients'),
     re_path(r'.*doctor-consultation\.html$', views.redirect_appointments, name='redirect_doctor_consultation'),
     re_path(r'.*admin-users\.html$', views.redirect_admin_users, name='redirect_admin_users'),
+    re_path(r'.*admin-doctors\.html$', views.redirect_admin_doctors, name='redirect_admin_doctors'),
+    re_path(r'.*admin-appointments\.html$', views.redirect_admin_appointments, name='redirect_admin_appointments'),
     re_path(r'.*admin-records\.html$', views.redirect_admin_records, name='redirect_admin_records'),
     re_path(r'.*admin-reports\.html$', views.redirect_admin_reports, name='redirect_admin_reports'),
+    re_path(r'.*admin-emergency\.html$', views.redirect_admin_emergency, name='redirect_admin_emergency'),
+    re_path(r'.*admin-feedback\.html$', views.redirect_admin_feedback, name='redirect_admin_feedback'),
+    re_path(r'.*admin-medicine-reminders\.html$', views.redirect_admin_medicine_reminders, name='redirect_admin_medicine_reminders'),
+    re_path(r'.*admin-payments\.html$', views.redirect_admin_payments, name='redirect_admin_payments'),
+    re_path(r'.*admin-health-assistant\.html$', views.redirect_admin_health_assistant, name='redirect_admin_health_assistant'),
+    re_path(r'.*admin-settings\.html$', views.redirect_admin_settings, name='redirect_admin_settings'),
 ]

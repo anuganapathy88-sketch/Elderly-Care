@@ -106,11 +106,14 @@
 
         <!-- Role Selection Tabs -->
         <div style="display:flex; background:rgba(255,255,255,0.06); padding:4px; border-radius:12px; margin: 16px 0 24px 0; border:1px solid var(--bg-glass-border); gap:6px;">
-          <a href="{% url 'register_elderly' %}" style="flex:1; text-align:center; padding:10px 14px; border-radius:8px; font-weight:700; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; background:var(--primary); color:white; box-shadow:0 2px 10px var(--primary-glow);">
-            <i class="fas fa-heart-pulse"></i> Patient / Elderly
+          <a href="{% url 'register_elderly' %}" style="flex:1; text-align:center; padding:10px 12px; border-radius:8px; font-weight:700; font-size:0.88rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px; background:var(--primary); color:white; box-shadow:0 2px 10px var(--primary-glow);">
+            <i class="fas fa-user"></i> User (Elder User)
           </a>
-          <a href="{% url 'register_doctor' %}?switch=1" style="flex:1; text-align:center; padding:10px 14px; border-radius:8px; font-weight:600; font-size:0.9rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; color:var(--text-muted); transition:all 0.2s;">
-            <i class="fas fa-user-doctor"></i> Doctor / Specialist
+          <a href="{% url 'register_doctor' %}?switch=1" style="flex:1; text-align:center; padding:10px 12px; border-radius:8px; font-weight:600; font-size:0.88rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px; color:var(--text-muted); transition:all 0.2s;">
+            <i class="fas fa-user-doctor"></i> Doctor
+          </a>
+          <a href="{% url 'admin_login' %}" style="flex:1; text-align:center; padding:10px 12px; border-radius:8px; font-weight:600; font-size:0.88rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px; color:var(--warning); transition:all 0.2s;" title="System Administrator Login">
+            <i class="fas fa-shield-halved"></i> Admin
           </a>
         </div>
 
@@ -252,12 +255,15 @@
           </button>
         </form>
 
-        <div class="auth-footer mt-4" style="display:flex; flex-direction:column; gap:8px; text-align:center;">
+        <div class="auth-footer mt-4" style="display:flex; flex-direction:column; gap:10px; text-align:center;">
           <div>Are you a medical doctor? <a href="{% url 'register_doctor' %}?switch=1" style="color:var(--info); font-weight:600;">Register as Doctor</a></div>
           <div>Already have an account? <a href="{% url 'login' %}">Sign In</a></div>
+          <div>System Administrator? <a href="{% url 'admin_login' %}" style="color:var(--warning); font-weight:600;"><i class="fas fa-shield-halved"></i> Admin Portal Login</a></div>
           
-          <div>
-            <a href="">Continue without Registration</a>
+          <div style="margin-top:6px; padding-top:12px; border-top:1px dashed var(--bg-glass-border);">
+            <a href="{% url 'guest_login' %}" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; color:var(--text-primary); text-decoration:none; font-weight:600; font-size:0.92rem; padding:10px 18px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--bg-glass-border); transition:all 0.25s ease;" onmouseover="this.style.background='rgba(16,185,129,0.12)'; this.style.borderColor='var(--primary)'; this.style.color='var(--primary)';" onmouseout="this.style.background='rgba(255,255,255,0.05)'; this.style.borderColor='var(--bg-glass-border)'; this.style.color='var(--text-primary)';">
+              <i class="fas fa-arrow-right-to-bracket" style="color:var(--primary);"></i> Continue without Registration &rarr;
+            </a>
           </div>
         </div>
       </div>
@@ -267,6 +273,7 @@
   <script src="{% static 'js/app.js' %}"></script>
   <script>
     function togglePassword(inputId, icon) {
+
       const input = document.getElementById(inputId);
       if (!input) return;
       if (input.type === 'password') {

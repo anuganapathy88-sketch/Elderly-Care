@@ -1,0 +1,10 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    ".",
+    "users",
+    "pyvenv/Lib/site-packages",
+    "C:/Users/Anusha/AppData/Roaming/Python/Python313/site-packages"
+  ]
+}

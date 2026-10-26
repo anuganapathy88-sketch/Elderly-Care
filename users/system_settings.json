@@ -1,0 +1,12 @@
+{
+  "facility_name": "Smart Elderly Care Medical Center",
+  "emergency_hotline": "1800-123-456",
+  "support_email": "support@eldercare.com",
+  "facility_address": "42 Wellness Blvd, Senior Care Campus, Suite 100",
+  "appointment_slot_duration": "30",
+  "advance_booking_days": "30",
+  "auto_approve_doctors": true,
+  "enable_guest_login": true,
+  "enable_emergency_broadcast": true,
+  "enable_simulation_alerts": true
+}

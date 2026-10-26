@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payments & Invoices — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/modules.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .payment-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 16px;
+    }
+    .payment-table th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--bg-glass-border);
+      text-align: left;
+    }
+    .payment-table td {
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: middle;
+    }
+    .payment-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .receipt-box {
+      background: #0f172a;
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .receipt-header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .receipt-row.total {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--success);
+      border-top: 2px solid rgba(255, 255, 255, 0.1);
+      border-bottom: none;
+      padding-top: 14px;
+      margin-top: 6px;
+    }
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      background: var(--bg-card, #1a202c);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-xl);
+      width: 90%;
+      max-width: 560px;
+      padding: 24px;
+      box-shadow: var(--shadow-xl);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring</a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
+        <span class="nav-section-label">Management</span>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>💳 Payments & Revenue Ledger</h2>
+            <p>Financial ledger, invoice reconciliation, and payment receipt audit</p>
+          </div>
+        </div>
+        <div class="topbar-right" style="display:flex; align-items:center; gap:10px;">
+          <button class="btn btn-primary btn-sm" onclick="openRecordModal()" style="display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-file-invoice-dollar"></i> Record New Payment
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Stat Counters -->
+        <div class="module-stats">
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--success)">₹{{ total_revenue|floatformat:2 }}</div>
+            <div class="ms-label">Total Revenue Collected</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--primary)">{{ completed_transactions }}</div>
+            <div class="ms-label">Successful Transactions</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--warning)">₹{{ pending_revenue|floatformat:2 }}</div>
+            <div class="ms-label">Pending Invoices</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--info)">{{ total_transactions }}</div>
+            <div class="ms-label">Total Payment Records</div>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px 20px; margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <a href="?status=all&method={{ method_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All Statuses</a>
+            <a href="?status=completed&method={{ method_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'completed' %}btn-success{% else %}btn-outline{% endif %}">Paid</a>
+            <a href="?status=pending&method={{ method_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'pending' %}btn-warning{% else %}btn-outline{% endif %}">Pending</a>
+            <a href="?status=refunded&method={{ method_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'refunded' %}btn-outline{% endif %}">Refunded</a>
+          </div>
+
+          <form method="GET" style="display:flex; gap:8px; margin:0; flex-grow:1; max-width:440px;">
+            <input type="hidden" name="status" value="{{ status_filter }}" />
+            <select name="method" onchange="this.form.submit()" class="form-control" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-md); font-size:0.85rem; max-width:140px;">
+              <option value="all">All Methods</option>
+              <option value="UPI" {% if method_filter == 'UPI' %}selected{% endif %}>UPI / QR</option>
+              <option value="Card" {% if method_filter == 'Card' %}selected{% endif %}>Card</option>
+              <option value="NetBanking" {% if method_filter == 'NetBanking' %}selected{% endif %}>Net Banking</option>
+              <option value="Insurance" {% if method_filter == 'Insurance' %}selected{% endif %}>Insurance</option>
+              <option value="Cash" {% if method_filter == 'Cash' %}selected{% endif %}>Cash</option>
+            </select>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search TXN ID, patient, invoice..." class="form-control" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:8px 14px; border-radius:var(--radius-md); font-size:0.9rem; flex-grow:1;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-magnifying-glass"></i></button>
+            {% if query or method_filter != 'all' %}
+              <a href="?status={{ status_filter }}" class="btn btn-ghost btn-sm" title="Clear Filters"><i class="fas fa-xmark"></i></a>
+            {% endif %}
+          </form>
+        </div>
+
+        <!-- Payments Table -->
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); overflow-x:auto; margin-top:20px;">
+          {% if payments %}
+            <table class="payment-table">
+              <thead>
+                <tr>
+                  <th>Transaction / Invoice</th>
+                  <th>Patient</th>
+                  <th>Doctor / Beneficiary</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in payments %}
+                  <tr>
+                    <td>
+                      <div style="font-weight:700; font-family:monospace; color:var(--primary); font-size:0.88rem;">{{ p.transaction_id }}</div>
+                      {% if p.invoice_no %}
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">{{ p.invoice_no }}</div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div style="font-weight:600;">{{ p.patient.get_full_name|default:p.patient.username }}</div>
+                      <div style="font-size:0.75rem; color:var(--text-muted);">{{ p.patient.email|default:"N/A" }}</div>
+                    </td>
+                    <td>
+                      {% if p.doctor %}
+                        <div style="font-weight:600; color:var(--info);">Dr. {{ p.doctor.get_full_name|default:p.doctor.username }}</div>
+                      {% else %}
+                        <span class="text-muted text-xs">Platform / General</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div style="font-weight:700; font-size:0.95rem; color:var(--text-primary);">₹{{ p.amount|floatformat:2 }}</div>
+                    </td>
+                    <td>
+                      <span class="badge badge-outline text-xs">
+                        <i class="fas {% if p.payment_method == 'UPI' %}fa-qrcode{% elif p.payment_method == 'Card' %}fa-credit-card{% elif p.payment_method == 'Insurance' %}fa-shield-halved{% else %}fa-building-columns{% endif %}"></i> {{ p.get_payment_method_display }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge {% if p.status == 'completed' %}badge-success{% elif p.status == 'pending' %}badge-warning{% elif p.status == 'refunded' %}badge-ghost{% else %}badge-danger{% endif %} text-xs">
+                        {{ p.get_status_display }}
+                      </span>
+                    </td>
+                    <td style="font-size:0.82rem; color:var(--text-secondary); white-space:nowrap;">
+                      {{ p.created_at|date:"M d, Y" }}<br />
+                      <span style="font-size:0.75rem; color:var(--text-muted);">{{ p.created_at|date:"H:i" }}</span>
+                    </td>
+                    <td style="text-align:right; white-space:nowrap;">
+                      <!-- VIEW PAYMENT BUTTON (User Request Requirement) -->
+                      <button class="btn btn-primary btn-sm" onclick="viewPaymentReceipt('{{ p.id }}')" title="View Payment Details & Receipt">
+                        <i class="fas fa-eye"></i> View Payment
+                      </button>
+
+                      <!-- Quick Status Action Menu -->
+                      <button class="btn btn-ghost btn-sm" onclick="openStatusChangeModal('{{ p.id }}', '{{ p.transaction_id }}', '{{ p.status }}')" title="Update Status">
+                        <i class="fas fa-ellipsis-vertical"></i>
+                      </button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div style="text-align:center; padding:48px;">
+              <i class="fas fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:12px;"></i>
+              <h3>No Payment Records Found</h3>
+              <p class="text-muted" style="margin-top:6px;">No transactions matched your selected filters.</p>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ VIEW PAYMENT RECEIPT MODAL (User Request) ══ -->
+  <div class="modal-backdrop" id="viewPaymentModal">
+    <div class="modal-box" style="max-width:580px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:1.15rem; display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-receipt" style="color:var(--success)"></i> Payment Invoice & Receipt
+        </h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeViewModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+
+      <div class="receipt-box" id="receiptContent">
+        <div class="receipt-header">
+          <div>
+            <div style="font-weight:700; font-size:1.1rem; color:white;">ElderCare Health Services</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Official Payment Voucher</div>
+          </div>
+          <div style="text-align:right;">
+            <div id="receiptInvoiceNo" style="font-family:monospace; font-size:0.85rem; color:var(--primary); font-weight:700;">INV-XXXX</div>
+            <div id="receiptDate" style="font-size:0.75rem; color:var(--text-muted);">Date</div>
+          </div>
+        </div>
+
+        <div class="receipt-row">
+          <span style="color:var(--text-muted);">Transaction Reference</span>
+          <span id="receiptTxnId" style="font-family:monospace; font-weight:600; color:white;">TXN-XXXX</span>
+        </div>
+        <div class="receipt-row">
+          <span style="color:var(--text-muted);">Senior Patient</span>
+          <span id="receiptPatient" style="font-weight:600; color:white;">Patient Name</span>
+        </div>
+        <div class="receipt-row">
+          <span style="color:var(--text-muted);">Consulting Doctor / Desk</span>
+          <span id="receiptDoctor" style="font-weight:600; color:white;">Dr. Name</span>
+        </div>
+        <div class="receipt-row">
+          <span style="color:var(--text-muted);">Service Description</span>
+          <span id="receiptDesc" style="color:white;">Doctor Consultation Fee</span>
+        </div>
+        <div class="receipt-row">
+          <span style="color:var(--text-muted);">Payment Channel</span>
+          <span id="receiptMethod" style="font-weight:600; color:var(--info);">UPI / QR</span>
+        </div>
+        <div class="receipt-row">
+          <span style="color:var(--text-muted);">Payment Status</span>
+          <span id="receiptStatus" class="badge badge-success text-xs">Completed</span>
+        </div>
+
+        <div class="receipt-row total">
+          <span>Total Amount Paid</span>
+          <span id="receiptAmount">₹0.00</span>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">
+          <i class="fas fa-print"></i> Print Receipt
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="closeViewModal()">Close View</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ UPDATE STATUS MODAL ══ -->
+  <div class="modal-backdrop" id="statusChangeModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 id="statusModalTitle" style="font-size:1.15rem;"><i class="fas fa-pen-to-square"></i> Update Transaction Status</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeStatusChangeModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <form id="statusChangeForm" method="POST" action="">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Select New Status</label>
+          <select name="status" id="statusSelectField" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            <option value="completed">Paid / Completed</option>
+            <option value="pending">Pending Payment</option>
+            <option value="refunded">Refunded to Patient</option>
+            <option value="failed">Failed / Cancelled</option>
+          </select>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeStatusChangeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ RECORD NEW PAYMENT MODAL ══ -->
+  <div class="modal-backdrop" id="recordModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 style="font-size:1.15rem;"><i class="fas fa-file-invoice-dollar" style="color:var(--primary)"></i> Record Payment Receipt</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeRecordModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <form method="POST" action="{% url 'admin_payment_record' %}">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Patient *</label>
+          <select name="patient_id" required class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            {% for patient in patients %}
+              <option value="{{ patient.id }}">{{ patient.get_full_name|default:patient.username }} ({{ patient.username }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Doctor (Optional)</label>
+          <select name="doctor_id" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            <option value="">General Platform Care / No Specific Doctor</option>
+            {% for doc in doctors %}
+              <option value="{{ doc.user.id }}">Dr. {{ doc.user.get_full_name|default:doc.user.username }} ({{ doc.specialization }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Amount (₹) *</label>
+            <input type="number" step="0.01" name="amount" required value="500.00" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Payment Method</label>
+            <select name="payment_method" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+              <option value="UPI">UPI / QR Scan</option>
+              <option value="Card">Credit / Debit Card</option>
+              <option value="NetBanking">Net Banking</option>
+              <option value="Cash">Cash on Visit</option>
+              <option value="Insurance">Health Insurance Cover</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Service Description</label>
+          <input type="text" name="description" value="Senior Doctor Consultation & Follow-up" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Payment Status</label>
+          <select name="status" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            <option value="completed">Paid / Completed</option>
+            <option value="pending">Pending Payment</option>
+          </select>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeRecordModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Save & Generate Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function viewPaymentReceipt(paymentId) {
+      fetch(`/admin-portal/payments/${paymentId}/json/`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('receiptInvoiceNo').textContent = data.invoice_no || 'INV-' + data.id;
+          document.getElementById('receiptDate').textContent = data.date;
+          document.getElementById('receiptTxnId').textContent = data.transaction_id;
+          document.getElementById('receiptPatient').textContent = data.patient_name;
+          document.getElementById('receiptDoctor').textContent = data.doctor_name;
+          document.getElementById('receiptDesc').textContent = data.description;
+          document.getElementById('receiptMethod').textContent = data.payment_method;
+          document.getElementById('receiptAmount').textContent = '₹' + parseFloat(data.amount).toFixed(2);
+
+          const statusElem = document.getElementById('receiptStatus');
+          statusElem.textContent = data.status_display;
+          statusElem.className = 'badge text-xs ' + (data.status === 'completed' ? 'badge-success' : (data.status === 'pending' ? 'badge-warning' : 'badge-danger'));
+
+          document.getElementById('viewPaymentModal').classList.add('active');
+        })
+        .catch(err => {
+          alert("Could not load payment details.");
+        });
+    }
+
+    function closeViewModal() {
+      document.getElementById('viewPaymentModal').classList.remove('active');
+    }
+
+    function openStatusChangeModal(paymentId, txnId, currentStatus) {
+      const modal = document.getElementById('statusChangeModal');
+      const form = document.getElementById('statusChangeForm');
+      form.action = `/admin-portal/payments/${paymentId}/status/`;
+      document.getElementById('statusModalTitle').textContent = `Update TXN: ${txnId}`;
+      document.getElementById('statusSelectField').value = currentStatus;
+      modal.classList.add('active');
+    }
+
+    function closeStatusChangeModal() {
+      document.getElementById('statusChangeModal').classList.remove('active');
+    }
+
+    function openRecordModal() {
+      document.getElementById('recordModal').classList.add('active');
+    }
+
+    function closeRecordModal() {
+      document.getElementById('recordModal').classList.remove('active');
+    }
+
+    const sidebarToggle = document.getElementById('sidebar_toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar_overlay');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+      });
+      overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

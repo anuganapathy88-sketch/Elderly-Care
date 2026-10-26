@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Small Health Assistant — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/modules.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .assistant-box {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .quick-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .quick-chip:hover {
+      background: rgba(14, 165, 233, 0.15);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+    .triage-card {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-top: 20px;
+      border: 1px solid var(--bg-glass-border);
+      animation: fadeIn 0.3s ease;
+    }
+    .triage-card.danger {
+      border-left: 4px solid var(--danger);
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.8) 40%);
+    }
+    .triage-card.warning {
+      border-left: 4px solid var(--warning);
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.8) 40%);
+    }
+    .triage-card.info {
+      border-left: 4px solid var(--info);
+      background: linear-gradient(90deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.8) 40%);
+    }
+    .triage-card.success {
+      border-left: 4px solid var(--success);
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.8) 40%);
+    }
+    .log-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .log-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring</a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
+        <span class="nav-section-label">Management</span>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>🩺 Small Health Assistant</h2>
+            <p>Clinical symptom triage, geriatric guidance, and drug interaction advisory engine</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Stat Counters -->
+        <div class="module-stats">
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--primary)">{{ total_queries }}</div>
+            <div class="ms-label">Total Triage Inquiries</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--danger)">{{ emergency_queries }}</div>
+            <div class="ms-label">Emergency Flags Raised</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--warning)">{{ high_queries }}</div>
+            <div class="ms-label">High Priority Symptoms</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--success)">{{ normal_queries }}</div>
+            <div class="ms-label">Routine / Wellness Inquiries</div>
+          </div>
+        </div>
+
+        <!-- Assistant Consultation Box -->
+        <div class="assistant-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <div style="font-weight:700; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-microchip" style="color:var(--primary)"></i> Interactive Clinical Triage
+            </div>
+            <span class="badge badge-primary text-xs"><i class="fas fa-circle-check"></i> Senior Medical Guidelines Active</span>
+          </div>
+
+          <!-- Quick Test Chips -->
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">Quick Symptom & Diagnostic Prompts:</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <span class="quick-chip" onclick="setQuery('Senior patient has acute crushing chest pain, radiating to left arm and cold sweats for 10 minutes')">
+                🚨 Chest Pain / Cardiac SOS
+              </span>
+              <span class="quick-chip" onclick="setQuery('BP measured 185/105 mmHg with severe throbbing headache and blurred vision')">
+                ⚠️ Severe BP Spike (185/105)
+              </span>
+              <span class="quick-chip" onclick="setQuery('Can patient take Metformin 500mg together with Amlodipine 5mg and Calcium supplements?')">
+                💊 Drug Regimen & Timing Check
+              </span>
+              <span class="quick-chip" onclick="setQuery('Patient had a minor slip in bathroom, feels mild pain in right hip with no visible swelling')">
+                🦽 Post-Fall Hip Assessment
+              </span>
+              <span class="quick-chip" onclick="setQuery('Senior patient feels sudden shaky tremors, dizziness, and blood sugar reads 55 mg/dL')">
+                🩸 Acute Hypoglycemia (Sugar 55)
+              </span>
+              <span class="quick-chip" onclick="setQuery('Recommended daily fluid and diet guidelines for an 72-year-old with mild hypertension')">
+                🥗 Senior Wellness & Diet
+              </span>
+            </div>
+          </div>
+
+          <!-- Assistant Form -->
+          <form method="POST" action="{% url 'admin_health_assistant' %}">
+            {% csrf_token %}
+            <div style="margin-bottom:14px;">
+              <select name="patient_id" class="form-control" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px 14px; border-radius:var(--radius-md); font-size:0.9rem; width:100%; max-width:320px; margin-bottom:10px;">
+                <option value="">General Medical Assessment (No Specific Patient)</option>
+                {% for p in patients %}
+                  <option value="{{ p.id }}">{{ p.get_full_name|default:p.username }} ({{ p.username }})</option>
+                {% endfor %}
+              </select>
+
+              <textarea name="query" id="queryInput" required rows="3" placeholder="Describe symptoms, vital signs, medication questions, or acute complaints..." class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:14px; border-radius:var(--radius-lg); font-size:0.95rem; line-height:1.5;">{{ query_text }}</textarea>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+              <button type="submit" class="btn btn-primary" style="display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-stethoscope"></i> Run Clinical Triage
+              </button>
+            </div>
+          </form>
+
+          <!-- Latest Triage Result Display -->
+          {% if latest_result %}
+            <div class="triage-card {{ latest_result.triage.badge }}">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span class="badge {% if latest_result.triage.badge == 'danger' %}badge-danger{% elif latest_result.triage.badge == 'warning' %}badge-warning{% elif latest_result.triage.badge == 'info' %}badge-info{% else %}badge-success{% endif %}" style="font-size:0.85rem; padding:4px 10px;">
+                    <i class="fas {% if latest_result.triage.badge == 'danger' %}fa-triangle-exclamation{% elif latest_result.triage.badge == 'warning' %}fa-exclamation{% else %}fa-circle-info{% endif %}"></i>
+                    {{ latest_result.triage.urgency|upper }}
+                  </span>
+                  {% if latest_result.patient %}
+                    <span style="font-size:0.9rem; font-weight:600; color:white;">Patient: {{ latest_result.patient.get_full_name|default:latest_result.patient.username }}</span>
+                  {% endif %}
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">
+                  <i class="fas fa-clock"></i> Just Analyzed
+                </div>
+              </div>
+
+              <!-- Specialist Recommendation -->
+              <div style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+                <span style="color:var(--text-muted); font-size:0.85rem;"><i class="fas fa-user-doctor"></i> Recommended Specialist:</span>
+                <strong style="color:var(--primary); font-size:0.92rem;">{{ latest_result.triage.specialist }}</strong>
+              </div>
+
+              <!-- Action & Protocol -->
+              <div style="font-size:0.92rem; color:white; line-height:1.6; white-space:pre-line;">
+                {{ latest_result.triage.action }}
+              </div>
+
+              <!-- Clinical Rationale -->
+              <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06);">
+                <strong>Assessment Rationale:</strong> {{ latest_result.triage.rationale }}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Query History & Audit Table -->
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+            <h3 style="font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-history" style="color:var(--info)"></i> Health Assistant Audit History
+            </h3>
+            <div style="display:flex; gap:8px;">
+              <a href="?urgency=all" class="btn btn-sm {% if active_urgency_filter == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All Inquiries</a>
+              <a href="?urgency=Emergency" class="btn btn-sm {% if active_urgency_filter == 'Emergency' %}btn-danger{% else %}btn-outline{% endif %}">Emergency</a>
+              <a href="?urgency=High Priority" class="btn btn-sm {% if active_urgency_filter == 'High Priority' %}btn-warning{% else %}btn-outline{% endif %}">High</a>
+              <a href="?urgency=Normal" class="btn btn-sm {% if active_urgency_filter == 'Normal' %}btn-success{% else %}btn-outline{% endif %}">Normal</a>
+            </div>
+          </div>
+
+          {% if recent_logs %}
+            <div>
+              {% for log in recent_logs %}
+                <div class="log-item">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span class="badge {% if 'Emergency' in log.urgency_level %}badge-danger{% elif 'High' in log.urgency_level %}badge-warning{% elif 'Moderate' in log.urgency_level %}badge-info{% else %}badge-success{% endif %} text-xs">
+                        {{ log.urgency_level }}
+                      </span>
+                      {% if log.user %}
+                        <span style="font-weight:600; font-size:0.88rem;">{{ log.user.get_full_name|default:log.user.username }}</span>
+                      {% else %}
+                        <span class="text-muted text-xs">General Triage</span>
+                      {% endif %}
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">
+                      {{ log.created_at|date:"M d, Y • H:i" }}
+                    </div>
+                  </div>
+
+                  <div style="font-size:0.9rem; color:var(--text-primary); margin-top:2px; font-weight:500;">
+                    "{{ log.query }}"
+                  </div>
+
+                  <div style="font-size:0.83rem; color:var(--text-secondary); background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:var(--radius-md); white-space:pre-line; margin-top:4px;">
+                    {{ log.response }}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="text-align:center; padding:32px; color:var(--text-muted);">
+              No past health assistant queries found matching filter.
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function setQuery(text) {
+      const input = document.getElementById('queryInput');
+      input.value = text;
+      input.focus();
+    }
+
+    const sidebarToggle = document.getElementById('sidebar_toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar_overlay');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+      });
+      overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/users",
+    "${workspaceFolder}/pyvenv/Lib/site-packages",
+    "C:/Users/Anusha/AppData/Roaming/Python/Python313/site-packages"
+  ]
+}

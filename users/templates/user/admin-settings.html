@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Settings — Smart Elderly Care</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/modules.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .settings-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--bg-glass-border);
+    }
+    .settings-nav-btn {
+      padding: 10px 18px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      border-radius: 6px 6px 0 0;
+    }
+    .settings-nav-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .settings-nav-btn.active {
+      color: var(--warning);
+      border-bottom: 2px solid var(--warning);
+      background: rgba(245, 158, 11, 0.08);
+    }
+    .settings-tab-panel {
+      display: none;
+    }
+    .settings-tab-panel.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .setting-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .setting-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--bg-glass-border);
+      padding-bottom: 12px;
+    }
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .toggle-row:last-child {
+      border-bottom: none;
+    }
+    .toggle-info h4 {
+      margin: 0 0 4px 0;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+    .toggle-info p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+    .switch-toggle {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+    .switch-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.2);
+      transition: .3s;
+      border-radius: 26px;
+    }
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .switch-slider {
+      background-color: var(--warning);
+    }
+    input:checked + .switch-slider:before {
+      transform: translateX(22px);
+    }
+    .diag-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .diag-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--bg-glass-border);
+      padding: 16px;
+      border-radius: 10px;
+    }
+    .diag-label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .diag-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring</a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
+        <span class="nav-section-label">Management</span>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ── Main Content ── -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>⚙️ System Settings & Administration</h2>
+            <p>Configure healthcare operations, system preferences, admin security, and announcements</p>
+          </div>
+        </div>
+        <div class="topbar-right" style="display:flex; align-items:center; gap:10px;">
+          <a href="/django-admin/" target="_blank" class="btn btn-outline btn-sm" title="Open Django Admin">
+            <i class="fas fa-database"></i> Django Admin
+          </a>
+        </div>
+      </header>
+
+      <div class="page-content">
+        {% if messages %}
+          <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast toast-{{ message.tags }}" style="position:static; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Navigation Tabs -->
+        <div class="settings-nav">
+          <button type="button" class="settings-nav-btn {% if active_tab == 'general' %}active{% endif %}" onclick="switchSettingsTab('general', this)">
+            <i class="fas fa-hospital"></i> Healthcare Operations
+          </button>
+          <button type="button" class="settings-nav-btn {% if active_tab == 'profile' %}active{% endif %}" onclick="switchSettingsTab('profile', this)">
+            <i class="fas fa-user-shield"></i> Admin Profile
+          </button>
+          <button type="button" class="settings-nav-btn {% if active_tab == 'security' %}active{% endif %}" onclick="switchSettingsTab('security', this)">
+            <i class="fas fa-key"></i> Security & Password
+          </button>
+          <button type="button" class="settings-nav-btn {% if active_tab == 'broadcast' %}active{% endif %}" onclick="switchSettingsTab('broadcast', this)">
+            <i class="fas fa-bullhorn"></i> Broadcast Announcements
+          </button>
+          <button type="button" class="settings-nav-btn {% if active_tab == 'maintenance' %}active{% endif %}" onclick="switchSettingsTab('maintenance', this)">
+            <i class="fas fa-server"></i> Diagnostics & Maintenance
+          </button>
+        </div>
+
+        <!-- ══════════ TAB 1: Healthcare Operations ══════════ -->
+        <div id="tab_general" class="settings-tab-panel {% if active_tab == 'general' %}active{% endif %}">
+          <form method="POST" action="{% url 'admin_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_general" />
+
+            <div class="setting-card">
+              <div class="setting-card-title">
+                <i class="fas fa-hospital" style="color:var(--primary);"></i> Healthcare Organization Details
+              </div>
+              <div class="form-grid-2" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                <div class="form-group">
+                  <label class="form-label">Facility / Hospital Name</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-building input-icon"></i>
+                    <input type="text" name="facility_name" class="form-input" value="{{ settings.facility_name }}" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Emergency 24/7 Hotline</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-phone-volume input-icon"></i>
+                    <input type="text" name="emergency_hotline" class="form-input" value="{{ settings.emergency_hotline }}" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Support Email Address</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" name="support_email" class="form-input" value="{{ settings.support_email }}" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Campus Physical Address</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-location-dot input-icon"></i>
+                    <input type="text" name="facility_address" class="form-input" value="{{ settings.facility_address }}" required />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-card">
+              <div class="setting-card-title">
+                <i class="fas fa-calendar-check" style="color:var(--info);"></i> Appointment & Scheduling Rules
+              </div>
+              <div class="form-grid-2" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                <div class="form-group">
+                  <label class="form-label">Default Consultation Slot Duration</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-stopwatch input-icon"></i>
+                    <select name="appointment_slot_duration" class="form-input form-select">
+                      <option value="15" {% if settings.appointment_slot_duration == "15" %}selected{% endif %}>15 Minutes</option>
+                      <option value="30" {% if settings.appointment_slot_duration == "30" %}selected{% endif %}>30 Minutes (Recommended)</option>
+                      <option value="45" {% if settings.appointment_slot_duration == "45" %}selected{% endif %}>45 Minutes</option>
+                      <option value="60" {% if settings.appointment_slot_duration == "60" %}selected{% endif %}>60 Minutes</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Max Advance Booking Window</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-calendar-days input-icon"></i>
+                    <select name="advance_booking_days" class="form-input form-select">
+                      <option value="7" {% if settings.advance_booking_days == "7" %}selected{% endif %}>7 Days</option>
+                      <option value="14" {% if settings.advance_booking_days == "14" %}selected{% endif %}>14 Days</option>
+                      <option value="30" {% if settings.advance_booking_days == "30" %}selected{% endif %}>30 Days (Current Month)</option>
+                      <option value="60" {% if settings.advance_booking_days == "60" %}selected{% endif %}>60 Days (Two Months)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-card">
+              <div class="setting-card-title">
+                <i class="fas fa-sliders" style="color:var(--warning);"></i> Access & Policy Toggles
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <h4>Auto-Approve Registered Doctors</h4>
+                  <p>When enabled, doctor registrations become active instantly without waiting for administrator review.</p>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" name="auto_approve_doctors" value="1" {% if settings.auto_approve_doctors %}checked{% endif %}>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <h4>Enable Guest Exploration Mode</h4>
+                  <p>Allow visitors to test the platform in guest patient mode without creating an account.</p>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" name="enable_guest_login" value="1" {% if settings.enable_guest_login %}checked{% endif %}>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <h4>Emergency SOS Auto-Broadcast</h4>
+                  <p>Trigger alerts to assigned emergency caregiver contacts when an elderly patient activates SOS.</p>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" name="enable_emergency_broadcast" value="1" {% if settings.enable_emergency_broadcast %}checked{% endif %}>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <h4>Simulate SMS & Email Notifications</h4>
+                  <p>Generate simulated notification logs and web toasts for appointment changes and prescriptions.</p>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" name="enable_simulation_alerts" value="1" {% if settings.enable_simulation_alerts %}checked{% endif %}>
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-floppy-disk"></i> Save Operation Settings
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- ══════════ TAB 2: Admin Profile ══════════ -->
+        <div id="tab_profile" class="settings-tab-panel {% if active_tab == 'profile' %}active{% endif %}">
+          <form method="POST" action="{% url 'admin_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_profile" />
+
+            <div class="setting-card">
+              <div class="setting-card-title">
+                <i class="fas fa-user-shield" style="color:var(--warning);"></i> Administrator Profile Details
+              </div>
+
+              <div style="display:flex; align-items:center; gap:18px; margin-bottom:24px; padding:16px; background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); border-radius:12px;">
+                <div class="avatar" style="width:58px; height:58px; font-size:1.4rem; background:linear-gradient(135deg, #f59e0b, #d97706); color:white; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                  {{ request.user.username|make_list|first|upper }}
+                </div>
+                <div>
+                  <div style="font-weight:700; font-size:1.1rem; color:var(--text-primary);">{{ request.user.get_full_name|default:request.user.username }}</div>
+                  <div style="font-size:0.85rem; color:var(--text-secondary);">{{ request.user.email }}</div>
+                  <div style="display:flex; gap:8px; margin-top:6px;">
+                    <span class="badge badge-warning text-xs"><i class="fas fa-shield-halved"></i> Superuser</span>
+                    <span class="badge badge-info text-xs"><i class="fas fa-user-check"></i> Staff Access</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid-2" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                <div class="form-group">
+                  <label class="form-label">First Name</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" name="first_name" class="form-input" value="{{ request.user.first_name }}" placeholder="Admin First Name" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Last Name</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" name="last_name" class="form-input" value="{{ request.user.last_name }}" placeholder="Admin Last Name" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Username *</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-at input-icon"></i>
+                    <input type="text" name="username" class="form-input" value="{{ request.user.username }}" required />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email Address *</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" name="email" class="form-input" value="{{ request.user.email }}" required />
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:20px;">
+                <button type="submit" class="btn btn-warning btn-lg">
+                  <i class="fas fa-check"></i> Update Profile
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- ══════════ TAB 3: Security & Password ══════════ -->
+        <div id="tab_security" class="settings-tab-panel {% if active_tab == 'security' %}active{% endif %}">
+          <form method="POST" action="{% url 'admin_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="change_password" />
+
+            <div class="setting-card">
+              <div class="setting-card-title">
+                <i class="fas fa-lock" style="color:var(--danger);"></i> Change Administrator Password
+              </div>
+
+              <div class="card mb-4" style="border-color:rgba(239,68,68,0.25); background:rgba(239,68,68,0.06); padding:16px; border-radius:10px; margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <i class="fas fa-triangle-exclamation" style="color:var(--danger); font-size:1.2rem;"></i>
+                  <div style="font-size:0.86rem; color:var(--text-secondary);">
+                    Changing your password will maintain your active login session. Remember to record the new credentials for next login.
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group" style="max-width:500px; margin-bottom:16px;">
+                <label class="form-label">Current Password *</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-lock input-icon"></i>
+                  <input type="password" id="admin_cur_pw" name="current_password" class="form-input" placeholder="Enter current admin password" required />
+                  <i class="fas fa-eye input-toggle" onclick="togglePassword('admin_cur_pw', this)"></i>
+                </div>
+              </div>
+
+              <div class="form-group" style="max-width:500px; margin-bottom:16px;">
+                <label class="form-label">New Password *</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-key input-icon"></i>
+                  <input type="password" id="admin_new_pw" name="new_password" class="form-input" placeholder="Minimum 6 characters" required />
+                  <i class="fas fa-eye input-toggle" onclick="togglePassword('admin_new_pw', this)"></i>
+                </div>
+              </div>
+
+              <div class="form-group" style="max-width:500px; margin-bottom:24px;">
+                <label class="form-label">Confirm New Password *</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-check-double input-icon"></i>
+                  <input type="password" id="admin_conf_pw" name="confirm_password" class="form-input" placeholder="Repeat new password" required />
+                  <i class="fas fa-eye input-toggle" onclick="togglePassword('admin_conf_pw', this)"></i>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-shield-halved"></i> Update Password
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- ══════════ TAB 4: Broadcast Announcements ══════════ -->
+        <div id="tab_broadcast" class="settings-tab-panel {% if active_tab == 'broadcast' %}active{% endif %}">
+          <form method="POST" action="{% url 'admin_settings' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="broadcast" />
+
+            <div class="setting-card">
+              <div class="setting-card-title">
+                <i class="fas fa-bullhorn" style="color:var(--info);"></i> Send System-Wide Broadcast Notification
+              </div>
+              <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:20px;">
+                Publish urgent announcements, schedule maintenance notices, or holiday alerts directly to user notification feeds.
+              </p>
+
+              <div class="form-grid-2" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:16px;">
+                <div class="form-group">
+                  <label class="form-label">Target Audience</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-users-viewfinder input-icon"></i>
+                    <select name="target" class="form-input form-select">
+                      <option value="all">Everyone (All Patients, Doctors & Staff)</option>
+                      <option value="elderly">Elderly Patients Only</option>
+                      <option value="doctors">Medical Doctors Only</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Notification Type</label>
+                  <div class="input-wrapper">
+                    <i class="fas fa-tag input-icon"></i>
+                    <select name="notification_type" class="form-input form-select">
+                      <option value="general">General Announcement</option>
+                      <option value="appointment_reminder">System Maintenance Notice</option>
+                      <option value="doctor_approved">Healthcare Alert</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label">Announcement Title *</label>
+                <div class="input-wrapper">
+                  <i class="fas fa-heading input-icon"></i>
+                  <input type="text" name="title" class="form-input" placeholder="e.g. Health Campus Flu Vaccination Camp Tomorrow" required />
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:24px;">
+                <label class="form-label">Message Content *</label>
+                <textarea name="message" class="form-input" rows="4" placeholder="Enter detailed message to broadcast to all selected users..." required style="resize:vertical;"></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg" onclick="return confirm('Are you sure you want to broadcast this message to the selected audience?');">
+                <i class="fas fa-paper-plane"></i> Send Broadcast Announcement
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- ══════════ TAB 5: Diagnostics & Maintenance ══════════ -->
+        <div id="tab_maintenance" class="settings-tab-panel {% if active_tab == 'maintenance' %}active{% endif %}">
+          <div class="setting-card">
+            <div class="setting-card-title">
+              <i class="fas fa-server" style="color:var(--success);"></i> System Diagnostics & Database Stats
+            </div>
+
+            <div class="diag-grid">
+              <div class="diag-box">
+                <div class="diag-label">Framework</div>
+                <div class="diag-value" style="color:var(--primary);">Django {{ diagnostics.django_version }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Python Environment</div>
+                <div class="diag-value">{{ diagnostics.python_version }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Database Engine</div>
+                <div class="diag-value" style="color:var(--info);">{{ diagnostics.db_engine }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Server Status</div>
+                <div class="diag-value" style="color:var(--success);"><i class="fas fa-circle-check"></i> Operational</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Total Users</div>
+                <div class="diag-value">{{ diagnostics.total_users }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Registered Patients</div>
+                <div class="diag-value" style="color:var(--primary);">{{ diagnostics.total_elderly }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Registered Doctors</div>
+                <div class="diag-value" style="color:var(--info);">{{ diagnostics.total_doctors }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Total Appointments</div>
+                <div class="diag-value" style="color:var(--warning);">{{ diagnostics.total_appointments }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Medical Records</div>
+                <div class="diag-value">{{ diagnostics.total_records }}</div>
+              </div>
+              <div class="diag-box">
+                <div class="diag-label">Notifications Logged</div>
+                <div class="diag-value">{{ diagnostics.total_notifications }} ({{ diagnostics.read_notifications }} read)</div>
+              </div>
+            </div>
+
+            <div class="setting-card-title" style="margin-top:20px; font-size:1rem;">
+              <i class="fas fa-wrench" style="color:var(--warning);"></i> Maintenance Actions
+            </div>
+
+            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:14px;">
+              <form method="POST" action="{% url 'admin_settings' %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="clear_read_notifications" />
+                <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Clear all read notifications from database?');">
+                  <i class="fas fa-broom"></i> Clear Read Notifications ({{ diagnostics.read_notifications }})
+                </button>
+              </form>
+
+              <a href="/django-admin/" target="_blank" class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,0.05);">
+                <i class="fas fa-database"></i> Launch Django Admin Console
+              </a>
+              <a href="{% url 'admin_reports' %}" class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,0.05);">
+                <i class="fas fa-chart-pie"></i> View Platform Analytics
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/storage.js"></script>
+  <script src="/static/js/auth.js"></script>
+  <script src="/static/js/admin-app.js"></script>
+  <script>
+    function switchSettingsTab(tabName, btn) {
+      document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.remove('active'));
+      
+      const panel = document.getElementById('tab_' + tabName);
+      if (panel) {
+        panel.classList.add('active');
+      }
+      if (btn) {
+        btn.classList.add('active');
+      }
+
+      // Update URL without page reload
+      const url = new URL(window.location);
+      url.searchParams.set('tab', tabName);
+      window.history.replaceState({}, '', url);
+    }
+
+    function togglePassword(inputId, icon) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

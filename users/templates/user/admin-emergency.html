@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergency Monitoring — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/modules.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .pulse-emergency {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger, #ef4444);
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      animation: pulse-red 1.5s infinite;
+      margin-right: 6px;
+    }
+    @keyframes pulse-red {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .emergency-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .emergency-card.critical-border {
+      border-left: 4px solid var(--danger, #ef4444);
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.08) 0%, var(--bg-card) 30%);
+    }
+    .emergency-card.high-border {
+      border-left: 4px solid var(--warning, #f59e0b);
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.06) 0%, var(--bg-card) 30%);
+    }
+    .emergency-card.resolved-border {
+      border-left: 4px solid var(--success, #10b981);
+    }
+    .vital-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      font-family: monospace;
+      color: var(--text-primary);
+    }
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      background: var(--bg-card, #1a202c);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-xl);
+      width: 90%;
+      max-width: 540px;
+      padding: 24px;
+      box-shadow: var(--shadow-xl);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link active">
+          <span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring
+          {% if active_count > 0 %}<span class="badge badge-danger text-xs" style="margin-left:auto; padding:2px 7px;">{{ active_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
+        <span class="nav-section-label">Management</span>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>🚨 Emergency Monitoring</h2>
+            <p>Real-time senior SOS dispatch and critical safety tele-monitoring</p>
+          </div>
+        </div>
+        <div class="topbar-right" style="display:flex; align-items:center; gap:10px;">
+          <button class="btn btn-danger btn-sm" onclick="openCreateModal()" style="display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-bell"></i> Trigger Alert / SOS
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Banner for Active Alarms -->
+        {% if active_count > 0 %}
+        <div style="background:linear-gradient(135deg,rgba(239,68,68,0.2),rgba(239,68,68,0.08)); border:1px solid rgba(239,68,68,0.4); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="pulse-emergency" style="width:14px; height:14px;"></span>
+            <div>
+              <div style="font-weight:700; color:var(--danger); font-size:1rem;">ACTIVE EMERGENCY IN PROGRESS ({{ active_count }} Alert{% if active_count > 1 %}s{% endif %})</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary);">Immediate emergency attention & responder coordination required.</div>
+            </div>
+          </div>
+          <a href="?status=active" class="btn btn-sm" style="background:var(--danger); color:white; text-decoration:none;">
+            Filter Active Now
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Stat Counters -->
+        <div class="module-stats">
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--danger)">{{ active_count }}</div>
+            <div class="ms-label">Active Critical Alerts</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--warning)">{{ dispatched_count }}</div>
+            <div class="ms-label">Responders Dispatched</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--success)">{{ resolved_count }}</div>
+            <div class="ms-label">Resolved Emergencies</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--info)">{{ total_alerts }}</div>
+            <div class="ms-label">Total Logged Incidents</div>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px 20px; margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <a href="?status=all&severity={{ severity_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All Statuses</a>
+            <a href="?status=active&severity={{ severity_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'active' %}btn-danger{% else %}btn-outline{% endif %}">Active Only</a>
+            <a href="?status=dispatched&severity={{ severity_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'dispatched' %}btn-warning{% else %}btn-outline{% endif %}">Dispatched</a>
+            <a href="?status=resolved&severity={{ severity_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'resolved' %}btn-success{% else %}btn-outline{% endif %}">Resolved</a>
+          </div>
+
+          <form method="GET" style="display:flex; gap:8px; margin:0; flex-grow:1; max-width:340px;">
+            <input type="hidden" name="status" value="{{ status_filter }}" />
+            <input type="hidden" name="severity" value="{{ severity_filter }}" />
+            <input type="text" name="q" value="{{ query }}" placeholder="Search patient, location..." class="form-control" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:8px 14px; border-radius:var(--radius-md); font-size:0.9rem; width:100%;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-magnifying-glass"></i></button>
+            {% if query %}
+              <a href="?status={{ status_filter }}" class="btn btn-ghost btn-sm" title="Clear Search"><i class="fas fa-xmark"></i></a>
+            {% endif %}
+          </form>
+        </div>
+
+        <!-- Emergency Alerts List -->
+        <div style="margin-top:20px;">
+          {% if alerts %}
+            {% for alert in alerts %}
+              <div class="emergency-card {% if alert.status == 'active' %}critical-border{% elif alert.status == 'dispatched' %}high-border{% else %}resolved-border{% endif %}">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    {% if alert.status == 'active' %}
+                      <span class="pulse-emergency"></span>
+                    {% endif %}
+                    <div>
+                      <div style="font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:8px;">
+                        <span>{{ alert.elderly.get_full_name|default:alert.elderly.username }}</span>
+                        {% if alert.elderly.elderly_profile.age %}
+                          <span class="text-muted text-xs">({{ alert.elderly.elderly_profile.age }} yrs • {{ alert.elderly.elderly_profile.gender|default:"Elderly" }})</span>
+                        {% endif %}
+                      </div>
+                      <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:2px;">
+                        <i class="fas fa-location-dot" style="color:var(--danger)"></i> {{ alert.location }}
+                        <span style="margin:0 6px;">•</span>
+                        <i class="fas fa-clock"></i> {{ alert.created_at|timesince }} ago ({{ alert.created_at|date:"M d, H:i" }})
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <!-- Alert Type Badge -->
+                    <span class="badge {% if alert.alert_type == 'sos' %}badge-danger{% elif alert.alert_type == 'fall' %}badge-warning{% else %}badge-info{% endif %} text-xs">
+                      <i class="fas {% if alert.alert_type == 'sos' %}fa-bell{% elif alert.alert_type == 'fall' %}fa-person-falling{% else %}fa-heart-pulse{% endif %}"></i> {{ alert.get_alert_type_display }}
+                    </span>
+
+                    <!-- Status Badge -->
+                    <span class="badge {% if alert.status == 'active' %}badge-danger{% elif alert.status == 'dispatched' %}badge-warning{% elif alert.status == 'resolved' %}badge-success{% else %}badge-ghost{% endif %} text-xs">
+                      {{ alert.get_status_display }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Vitals & Notes Snapshot -->
+                {% if alert.vital_snapshot %}
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:rgba(0,0,0,0.25); border-radius:var(--radius-md); padding:8px 12px;">
+                    <span style="font-size:0.8rem; font-weight:600; color:var(--text-muted);"><i class="fas fa-wave-square"></i> Vitals:</span>
+                    <span class="vital-pill">{{ alert.vital_snapshot }}</span>
+                  </div>
+                {% endif %}
+
+                {% if alert.notes %}
+                  <div style="font-size:0.88rem; color:var(--text-secondary); background:rgba(255,255,255,0.02); border-left:2px solid var(--text-muted); padding:6px 12px; border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+                    {{ alert.notes|linebreaksbr }}
+                  </div>
+                {% endif %}
+
+                <!-- Footer with Contacts & Status Update Button -->
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; gap:12px;">
+                  <div style="display:flex; align-items:center; gap:16px; font-size:0.82rem; color:var(--text-secondary);">
+                    {% if alert.elderly.elderly_profile.phone %}
+                      <span><i class="fas fa-phone"></i> Patient: <strong>{{ alert.elderly.elderly_profile.phone }}</strong></span>
+                    {% endif %}
+                    {% if alert.elderly.elderly_profile.emergency_contact_phone %}
+                      <span><i class="fas fa-person-breastfeeding"></i> Emergency Contact: <strong>{{ alert.elderly.elderly_profile.emergency_contact_name }} ({{ alert.elderly.elderly_profile.emergency_contact_phone }})</strong></span>
+                    {% endif %}
+                    {% if alert.responder_name %}
+                      <span style="color:var(--info);"><i class="fas fa-user-shield"></i> Responder: <strong>{{ alert.responder_name }}</strong></span>
+                    {% endif %}
+                  </div>
+
+                  <div style="display:flex; gap:8px;">
+                    {% if alert.elderly.elderly_profile.phone %}
+                      <a href="tel:{{ alert.elderly.elderly_profile.phone }}" class="btn btn-outline btn-sm" style="color:var(--success);">
+                        <i class="fas fa-phone-volume"></i> Call
+                      </a>
+                    {% endif %}
+                    <button class="btn btn-primary btn-sm" onclick="openStatusModal('{{ alert.id }}', '{{ alert.status }}', '{{ alert.responder_name|escapejs }}', '{{ alert.elderly.username|escapejs }}')">
+                      <i class="fas fa-pen-to-square"></i> Update Dispatch / Status
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center; padding:48px; background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--bg-glass-border);">
+              <i class="fas fa-shield-heart" style="font-size:3rem; color:var(--success); margin-bottom:12px;"></i>
+              <h3>No Active Emergencies</h3>
+              <p class="text-muted" style="margin-top:6px;">All monitored seniors are currently safe and vitals within normal parameters.</p>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ UPDATE STATUS MODAL ══ -->
+  <div class="modal-backdrop" id="statusModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 id="modalPatientTitle" style="font-size:1.15rem;"><i class="fas fa-truck-medical" style="color:var(--danger)"></i> Update Emergency Dispatch</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeStatusModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <form id="statusForm" method="POST" action="">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Status</label>
+          <select name="status" id="modalStatusSelect" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            <option value="active">Active Alert (Urgent Attention)</option>
+            <option value="dispatched">Responder / Paramedic Dispatched</option>
+            <option value="resolved">Resolved / Senior Safe</option>
+            <option value="false_alarm">False Alarm (Accidental Trigger)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Assigned Responder / Paramedic Team</label>
+          <input type="text" name="responder_name" id="modalResponderInput" placeholder="e.g. Paramedic Unit #04 / Dr. Sharma" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Dispatch & Resolution Notes</label>
+          <textarea name="notes" rows="3" placeholder="Enter status log or paramedic intervention notes..." class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeStatusModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Status & Notify Patient</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══ CREATE ALERT MODAL ══ -->
+  <div class="modal-backdrop" id="createModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 style="font-size:1.15rem;"><i class="fas fa-bell" style="color:var(--danger)"></i> Trigger Emergency Alert</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeCreateModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <form method="POST" action="{% url 'admin_emergency_create' %}">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Select Senior Patient *</label>
+          <select name="elderly_id" required class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            {% for patient in elderly_patients %}
+              <option value="{{ patient.id }}">{{ patient.get_full_name|default:patient.username }} ({{ patient.username }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Alert Type</label>
+            <select name="alert_type" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+              <option value="sos">SOS Panic Button</option>
+              <option value="fall">Fall Detection Sensor</option>
+              <option value="heart_rate">Abnormal Heart Rate</option>
+              <option value="spo2">Low Oxygen (SpO2)</option>
+              <option value="critical_vitals">Critical Vitals Spike</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Severity</label>
+            <select name="severity" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+              <option value="critical">Critical (Immediate)</option>
+              <option value="high">High Priority</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Incident Location</label>
+          <input type="text" name="location" value="Home Residence - Bedroom" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Vitals Snapshot</label>
+          <input type="text" name="vital_snapshot" placeholder="e.g. HR: 135 bpm | BP: 160/100 | SpO2: 91%" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Emergency Description / Notes</label>
+          <textarea name="notes" rows="2" placeholder="Description of emergency situation..." class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeCreateModal()">Cancel</button>
+          <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-bell"></i> Trigger Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openStatusModal(alertId, currentStatus, currentResponder, patientName) {
+      const modal = document.getElementById('statusModal');
+      const form = document.getElementById('statusForm');
+      form.action = `/admin-portal/emergency/${alertId}/status/`;
+      document.getElementById('modalPatientTitle').innerHTML = `<i class="fas fa-truck-medical" style="color:var(--danger)"></i> Update Alert for ${patientName}`;
+      document.getElementById('modalStatusSelect').value = currentStatus;
+      document.getElementById('modalResponderInput').value = currentResponder || '';
+      modal.classList.add('active');
+    }
+
+    function closeStatusModal() {
+      document.getElementById('statusModal').classList.remove('active');
+    }
+
+    function openCreateModal() {
+      document.getElementById('createModal').classList.add('active');
+    }
+
+    function closeCreateModal() {
+      document.getElementById('createModal').classList.remove('active');
+    }
+
+    const sidebarToggle = document.getElementById('sidebar_toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar_overlay');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+      });
+      overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

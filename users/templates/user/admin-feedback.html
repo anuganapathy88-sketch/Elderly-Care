@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback Management — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/modules.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .star-gold { color: #f59e0b; }
+    .star-gray { color: rgba(255, 255, 255, 0.2); }
+    .feedback-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .feedback-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+    .admin-reply-box {
+      background: rgba(14, 165, 233, 0.08);
+      border: 1px solid rgba(14, 165, 233, 0.25);
+      border-left: 3px solid var(--primary);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 0.88rem;
+    }
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      background: var(--bg-card, #1a202c);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-xl);
+      width: 90%;
+      max-width: 520px;
+      padding: 24px;
+      box-shadow: var(--shadow-xl);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring</a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
+        <span class="nav-section-label">Management</span>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link active">
+          <span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management
+          {% if pending_feedbacks > 0 %}<span class="badge badge-warning text-xs" style="margin-left:auto; padding:2px 7px;">{{ pending_feedbacks }}</span>{% endif %}
+        </a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>💬 Feedback Management</h2>
+            <p>Patient reviews, care ratings, and patient experience auditing</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Stat Counters -->
+        <div class="module-stats">
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--primary)">{{ total_feedbacks }}</div>
+            <div class="ms-label">Total Reviews</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:#f59e0b; display:flex; align-items:center; justify-content:center; gap:6px;">
+              {{ avg_rating }} <span style="font-size:1.1rem;">★</span>
+            </div>
+            <div class="ms-label">Average Satisfaction</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--warning)">{{ pending_feedbacks }}</div>
+            <div class="ms-label">Pending Admin Review</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--success)">{{ resolved_feedbacks }}</div>
+            <div class="ms-label">Addressed & Resolved</div>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px 20px; margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <a href="?status=all&category={{ category_filter }}&rating={{ rating_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All Statuses</a>
+            <a href="?status=pending&category={{ category_filter }}&rating={{ rating_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'pending' %}btn-warning{% else %}btn-outline{% endif %}">Pending ({{ pending_feedbacks }})</a>
+            <a href="?status=reviewed&category={{ category_filter }}&rating={{ rating_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'reviewed' %}btn-primary{% else %}btn-outline{% endif %}">Reviewed</a>
+            <a href="?status=resolved&category={{ category_filter }}&rating={{ rating_filter }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'resolved' %}btn-success{% else %}btn-outline{% endif %}">Resolved</a>
+          </div>
+
+          <form method="GET" style="display:flex; gap:8px; margin:0; flex-grow:1; max-width:340px;">
+            <input type="hidden" name="status" value="{{ status_filter }}" />
+            <input type="hidden" name="category" value="{{ category_filter }}" />
+            <input type="hidden" name="rating" value="{{ rating_filter }}" />
+            <input type="text" name="q" value="{{ query }}" placeholder="Search patient, comments..." class="form-control" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:8px 14px; border-radius:var(--radius-md); font-size:0.9rem; width:100%;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-magnifying-glass"></i></button>
+            {% if query %}
+              <a href="?status={{ status_filter }}" class="btn btn-ghost btn-sm"><i class="fas fa-xmark"></i></a>
+            {% endif %}
+          </form>
+        </div>
+
+        <!-- Feedback Cards List -->
+        <div style="margin-top:20px;">
+          {% if feedbacks %}
+            {% for item in feedbacks %}
+              <div class="feedback-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--info)); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem;">
+                      {{ item.user.username|first|upper }}
+                    </div>
+                    <div>
+                      <div style="font-weight:700; font-size:0.98rem; display:flex; align-items:center; gap:8px;">
+                        <span>{{ item.user.get_full_name|default:item.user.username }}</span>
+                        <span class="badge badge-outline text-xs">{{ item.get_category_display }}</span>
+                      </div>
+                      <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:2px;">
+                        <i class="fas fa-calendar-day"></i> {{ item.created_at|date:"M d, Y" }} at {{ item.created_at|date:"H:i" }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <!-- Star Rating -->
+                    <div style="display:flex; gap:2px; font-size:0.95rem;">
+                      {% for i in "12345" %}
+                        {% if forloop.counter <= item.rating %}
+                          <i class="fas fa-star star-gold"></i>
+                        {% else %}
+                          <i class="fas fa-star star-gray"></i>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+
+                    <!-- Status Badge -->
+                    <span class="badge {% if item.status == 'pending' %}badge-warning{% elif item.status == 'reviewed' %}badge-primary{% else %}badge-success{% endif %} text-xs">
+                      {{ item.get_status_display }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Review Content -->
+                {% if item.title %}
+                  <div style="font-weight:600; font-size:0.95rem; color:var(--text-primary); margin-top:4px;">
+                    {{ item.title }}
+                  </div>
+                {% endif %}
+                <div style="font-size:0.9rem; color:var(--text-secondary); line-height:1.5;">
+                  {{ item.comment|linebreaksbr }}
+                </div>
+
+                <!-- Admin Reply (if exists) -->
+                {% if item.admin_reply %}
+                  <div class="admin-reply-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                      <div style="font-weight:700; color:var(--primary); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
+                        <i class="fas fa-reply"></i> Official Admin Response
+                      </div>
+                      {% if item.replied_at %}
+                        <div style="font-size:0.75rem; color:var(--text-muted);">{{ item.replied_at|date:"M d, Y" }}</div>
+                      {% endif %}
+                    </div>
+                    <div style="color:var(--text-primary); font-size:0.88rem;">{{ item.admin_reply }}</div>
+                  </div>
+                {% endif %}
+
+                <!-- Footer with Action Buttons -->
+                <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05); margin-top:4px;">
+                  <a href="{% url 'admin_feedback_delete' item.id %}" onclick="return confirm('Are you sure you want to remove this feedback record?');" class="btn btn-ghost btn-sm" style="color:var(--danger);" title="Delete Record">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                  <button class="btn btn-outline btn-sm" onclick="openReplyModal('{{ item.id }}', '{{ item.status }}', '{{ item.admin_reply|escapejs }}', '{{ item.user.username|escapejs }}')">
+                    <i class="fas fa-reply"></i> {% if item.admin_reply %}Edit Reply{% else %}Respond to Patient{% endif %}
+                  </button>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center; padding:48px; background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--bg-glass-border);">
+              <i class="fas fa-comment-dots" style="font-size:3rem; color:var(--text-muted); margin-bottom:12px;"></i>
+              <h3>No Feedbacks Found</h3>
+              <p class="text-muted" style="margin-top:6px;">No patient reviews match your current filter settings.</p>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ REPLY MODAL ══ -->
+  <div class="modal-backdrop" id="replyModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 id="modalReplyTitle" style="font-size:1.15rem;"><i class="fas fa-reply" style="color:var(--primary)"></i> Respond to Feedback</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeReplyModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <form id="replyForm" method="POST" action="">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Update Review Status</label>
+          <select name="status" id="modalStatusSelect" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            <option value="reviewed">Mark as Reviewed</option>
+            <option value="resolved">Mark as Resolved / Addressed</option>
+            <option value="pending">Keep as Pending</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Official Admin Reply *</label>
+          <textarea name="admin_reply" id="modalReplyText" required rows="4" placeholder="Write a courteous response to the patient..." class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);"></textarea>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+            The patient will automatically receive a notification with this response.
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeReplyModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane"></i> Send Reply</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openReplyModal(feedbackId, currentStatus, currentReply, username) {
+      const modal = document.getElementById('replyModal');
+      const form = document.getElementById('replyForm');
+      form.action = `/admin-portal/feedback/${feedbackId}/reply/`;
+      document.getElementById('modalReplyTitle').innerHTML = `<i class="fas fa-reply" style="color:var(--primary)"></i> Respond to ${username}`;
+      document.getElementById('modalStatusSelect').value = currentStatus === 'pending' ? 'reviewed' : currentStatus;
+      document.getElementById('modalReplyText').value = currentReply || '';
+      modal.classList.add('active');
+    }
+
+    function closeReplyModal() {
+      document.getElementById('replyModal').classList.remove('active');
+    }
+
+    const sidebarToggle = document.getElementById('sidebar_toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar_overlay');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+      });
+      overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

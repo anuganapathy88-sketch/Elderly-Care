@@ -8,10 +8,56 @@
   <link rel="stylesheet" href="/static/css/dashboard.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    .data-table { width: 100%; border-collapse: collapse; text-align: left; }
-    .data-table th, .data-table td { padding: 16px; border-bottom: 1px solid var(--bg-glass-border); }
-    .data-table th { font-weight: 600; color: var(--text-secondary); background: rgba(255,255,255,0.02); }
-    .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .data-table th, .data-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--bg-glass-border);
+      vertical-align: middle;
+    }
+    .data-table th {
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .filter-pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--bg-glass-border);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+    .filter-pill.active {
+      background: var(--info);
+      color: white;
+      border-color: var(--info);
+    }
   </style>
 </head>
 <body>
@@ -29,25 +75,33 @@
       <div class="sidebar-user">
         <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
         <div class="sidebar-user-info">
-          <div class="user-name" id="sidebar_user_name">Admin</div>
-          <div class="user-email" id="sidebar_user_email">admin@eldercare.com</div>
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
         </div>
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Overview</span>
-        <a href="admin-dashboard.html" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
-        <a href="admin-reports.html" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Basic Reports</a>
-        
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring</a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
         <span class="nav-section-label">Management</span>
-        <a href="admin-users.html" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Users</a>
-        <a href="admin-doctors.html" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Doctors</a>
-        
-        <span class="nav-section-label">System Data</span>
-        <a href="admin-appointments.html" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
-        <a href="admin-records.html" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
       </nav>
       <div class="sidebar-footer">
-        <button class="sidebar-logout" onclick="Auth.logout()"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</button>
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
       </div>
     </aside>
 
@@ -56,28 +110,157 @@
         <div class="topbar-left">
           <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
           <div class="topbar-title">
-            <h2>🩺 Manage Doctors</h2>
-            <p>Approve registrations and manage provider access.</p>
+            <h2>🩺 Manage Doctors & Provider Access</h2>
+            <p>Approve registrations, manage credentials, and block/unblock provider access</p>
           </div>
+        </div>
+        <div class="topbar-right" style="display:flex; align-items:center; gap:10px;">
+          <a href="{% url 'admin_settings' %}" class="btn btn-outline btn-sm" style="display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-gear"></i> Settings
+          </a>
         </div>
       </header>
 
       <div class="page-content">
-        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); overflow-x:auto;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Doctor Name</th>
-                <th>Specialization</th>
-                <th>Hospital / Clinic</th>
-                <th>Status</th>
-                <th style="text-align:right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="doctors_tbody">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
+        {% if messages %}
+          <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="toast toast-{{ message.tags }}" style="position:static; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Filter & Search Bar Card -->
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            
+            <form method="GET" action="{% url 'admin_doctors' %}" style="display:flex; gap:8px; flex:1; min-width:280px; max-width:420px;">
+              {% if active_filter != 'all' %}<input type="hidden" name="status" value="{{ active_filter }}" />{% endif %}
+              <div class="input-wrapper" style="flex:1;">
+                <i class="fas fa-search input-icon"></i>
+                <input type="text" name="q" class="form-input" placeholder="Search doctor by name, specialization, email..." value="{{ query }}" />
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Search</button>
+              {% if query %}
+                <a href="{% url 'admin_doctors' %}?status={{ active_filter }}" class="btn btn-ghost btn-sm" title="Clear Search"><i class="fas fa-times"></i></a>
+              {% endif %}
+            </form>
+
+            <div class="filter-pills">
+              <span style="font-size:0.8rem; color:var(--text-secondary); margin-right:4px;">Filter:</span>
+              <a href="{% url 'admin_doctors' %}?status=all{% if query %}&q={{ query }}{% endif %}" class="filter-pill {% if active_filter == 'all' %}active{% endif %}">
+                All Doctors
+              </a>
+              <a href="{% url 'admin_doctors' %}?status=approved{% if query %}&q={{ query }}{% endif %}" class="filter-pill {% if active_filter == 'approved' %}active{% endif %}">
+                🟢 Approved
+              </a>
+              <a href="{% url 'admin_doctors' %}?status=pending{% if query %}&q={{ query }}{% endif %}" class="filter-pill {% if active_filter == 'pending' %}active{% endif %}">
+                🟡 Pending Approval
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Doctor Name</th>
+                  <th>Specialization & Qualification</th>
+                  <th>Contact Info</th>
+                  <th>Approval Status</th>
+                  <th>Account Status</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if doctors %}
+                  {% for d in doctors %}
+                    <tr>
+                      <td>
+                        <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">
+                          Dr. {{ d.user.get_full_name|default:d.user.username }}
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--text-secondary);">
+                          @{{ d.user.username }}
+                        </div>
+                      </td>
+
+                      <td>
+                        <div style="font-weight:600; color:var(--text-primary);">{{ d.specialization }}</div>
+                        <div style="font-size:0.8rem; color:var(--text-secondary);">{{ d.qualification|default:"Licensed Medical Practitioner" }}</div>
+                      </td>
+
+                      <td>
+                        <div style="font-size:0.88rem; color:var(--text-primary);">{{ d.user.email }}</div>
+                        <div style="font-size:0.8rem; color:var(--text-secondary);">{{ d.contact_phone|default:"N/A" }}</div>
+                      </td>
+
+                      <td>
+                        {% if d.is_approved %}
+                          <span class="badge badge-success" style="font-size:0.8rem; padding:4px 8px;"><i class="fas fa-check"></i> Approved</span>
+                        {% else %}
+                          <span class="badge badge-warning" style="font-size:0.8rem; padding:4px 8px;"><i class="fas fa-clock"></i> Pending Review</span>
+                        {% endif %}
+                      </td>
+
+                      <td>
+                        {% if d.user.is_active %}
+                          <span class="badge badge-success" style="font-size:0.8rem; padding:4px 8px;"><i class="fas fa-circle-check"></i> Active</span>
+                        {% else %}
+                          <span class="badge badge-danger" style="font-size:0.8rem; padding:4px 8px; background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4);">
+                            <i class="fas fa-ban"></i> Blocked
+                          </span>
+                        {% endif %}
+                      </td>
+
+                      <td style="text-align:right;">
+                        <div style="display:inline-flex; align-items:center; gap:8px;">
+                          <!-- Toggle Approval -->
+                          <a href="{% url 'admin_doctor_toggle_approval' d.id %}"
+                             class="btn btn-sm {% if d.is_approved %}btn-ghost{% else %}btn-success{% endif %}"
+                             style="font-size:0.82rem; padding:5px 10px;">
+                            {% if d.is_approved %}<i class="fas fa-times"></i> Revoke{% else %}<i class="fas fa-check"></i> Approve{% endif %}
+                          </a>
+
+                          <!-- Block / Unblock User Account -->
+                          {% if d.user.is_active %}
+                            <a href="{% url 'admin_user_toggle' d.user.id %}"
+                               class="btn btn-sm btn-outline"
+                               style="color:var(--danger); border-color:rgba(239,68,68,0.4); font-size:0.82rem; padding:5px 10px;"
+                               onclick="return confirm('Block Dr. {{ d.user.username }}? They will be unable to log in.');"
+                               title="Block Doctor Account">
+                              <i class="fas fa-ban"></i> Block
+                            </a>
+                          {% else %}
+                            <a href="{% url 'admin_user_toggle' d.user.id %}"
+                               class="btn btn-sm btn-success"
+                               style="font-size:0.82rem; padding:5px 10px;"
+                               onclick="return confirm('Unblock Dr. {{ d.user.username }}?');"
+                               title="Unblock Doctor Account">
+                              <i class="fas fa-unlock"></i> Unblock
+                            </a>
+                          {% endif %}
+                        </div>
+                      </td>
+
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="6" style="text-align:center; padding:40px 20px;">
+                      <p style="color:var(--text-muted); margin:0;">No doctors found matching criteria.</p>
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>
@@ -86,56 +269,6 @@
   <script src="/static/js/storage.js"></script>
   <script src="/static/js/auth.js"></script>
   <script src="/static/js/admin-app.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', renderDoctors);
-
-    function renderDoctors() {
-      const doctors = Storage.getDoctors();
-      const tbody = document.getElementById('doctors_tbody');
-      
-      if (!doctors.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No doctors found.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = doctors.map(d => {
-        let statusBadge = '';
-        let actions = '';
-        
-        const status = d.status || 'active'; // Legacy seeded doctors are active by default
-        
-        if (status === 'pending') {
-          statusBadge = `<span class="badge badge-warning">Pending Approval</span>`;
-          actions = `
-            <button class="btn btn-sm btn-success" onclick="updateStatus('${d.id}', 'active')"><i class="fas fa-check"></i> Approve</button>
-            <button class="btn btn-sm btn-danger" onclick="updateStatus('${d.id}', 'rejected')"><i class="fas fa-times"></i> Reject</button>
-          `;
-        } else if (status === 'active') {
-          statusBadge = `<span class="badge badge-success">Active</span>`;
-          actions = `<button class="btn btn-sm btn-ghost" onclick="updateStatus('${d.id}', 'inactive')">Deactivate</button>`;
-        } else {
-          statusBadge = `<span class="badge badge-danger">Inactive / Rejected</span>`;
-          actions = `<button class="btn btn-sm btn-primary" onclick="updateStatus('${d.id}', 'active')">Re-activate</button>`;
-        }
-
-        return `
-          <tr>
-            <td style="font-weight:600;">${d.name}</td>
-            <td style="color:var(--text-secondary);">${d.specialization}</td>
-            <td style="color:var(--text-secondary);">${d.hospital}</td>
-            <td>${statusBadge}</td>
-            <td style="text-align:right; display:flex; gap:8px; justify-content:flex-end;">${actions}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function updateStatus(id, status) {
-      Storage.updateDoctorStatus(id, status);
-      Auth.showToast(`Doctor status updated to ${status}.`);
-      renderDoctors();
-    }
-  </script>
   {% include 'user/components/popup_messages.html' %}
 </body>
 </html>

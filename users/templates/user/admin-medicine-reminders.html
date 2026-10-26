@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medicine Reminders — Admin Portal</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/modules.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .med-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .med-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+    .timing-badge {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: var(--success);
+      border-radius: var(--radius-md);
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      background: var(--bg-card, #1a202c);
+      border: 1px solid var(--bg-glass-border);
+      border-radius: var(--radius-xl);
+      width: 90%;
+      max-width: 540px;
+      padding: 24px;
+      box-shadow: var(--shadow-xl);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient-mesh"></div>
+  <div class="sidebar-overlay" id="sidebar_overlay"></div>
+
+  <div class="app-layout">
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo" style="background:var(--danger); color:white;"><i class="fas fa-shield-halved"></i></div>
+          <div class="sidebar-brand-text"><h3>Admin Portal</h3><span>System Management</span></div>
+        </div>
+      </div>
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
+        <div class="sidebar-user-info">
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <span class="nav-section-label">Overview</span>
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring</a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
+        <span class="nav-section-label">Management</span>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
+          <div class="topbar-title">
+            <h2>💊 Medicine Reminders</h2>
+            <p>Senior medication regimens, dosage alerts, and compliance tracking</p>
+          </div>
+        </div>
+        <div class="topbar-right" style="display:flex; align-items:center; gap:10px;">
+          <button class="btn btn-primary btn-sm" onclick="openAddModal()" style="display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-plus"></i> Add Medicine Schedule
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Stat Counters -->
+        <div class="module-stats">
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--primary)">{{ active_reminders }}</div>
+            <div class="ms-label">Active Medicine Regimens</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--info)">{{ patients_with_reminders }}</div>
+            <div class="ms-label">Patients on Schedule</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--warning)">{{ paused_reminders }}</div>
+            <div class="ms-label">Paused Schedules</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--success)">{{ total_reminders }}</div>
+            <div class="ms-label">Total Recorded Regimens</div>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div style="background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px 20px; margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <a href="?status=all&elderly={{ selected_elderly }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All Schedules</a>
+            <a href="?status=active&elderly={{ selected_elderly }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'active' %}btn-success{% else %}btn-outline{% endif %}">Active Only</a>
+            <a href="?status=paused&elderly={{ selected_elderly }}&q={{ query }}" class="btn btn-sm {% if status_filter == 'paused' %}btn-warning{% else %}btn-outline{% endif %}">Paused</a>
+          </div>
+
+          <form method="GET" style="display:flex; gap:8px; margin:0; flex-grow:1; max-width:440px;">
+            <input type="hidden" name="status" value="{{ status_filter }}" />
+            <select name="elderly" onchange="this.form.submit()" class="form-control" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-md); font-size:0.85rem; max-width:180px;">
+              <option value="">All Patients</option>
+              {% for p in elderly_patients %}
+                <option value="{{ p.id }}" {% if selected_elderly == p.id|stringformat:"s" %}selected{% endif %}>{{ p.get_full_name|default:p.username }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search medicine, dosage..." class="form-control" style="background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:8px 14px; border-radius:var(--radius-md); font-size:0.9rem; flex-grow:1;" />
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-magnifying-glass"></i></button>
+            {% if query or selected_elderly %}
+              <a href="?status={{ status_filter }}" class="btn btn-ghost btn-sm" title="Clear Filters"><i class="fas fa-xmark"></i></a>
+            {% endif %}
+          </form>
+        </div>
+
+        <!-- Reminders List -->
+        <div style="margin-top:20px;">
+          {% if reminders %}
+            {% for item in reminders %}
+              <div class="med-card">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                  <div style="display:flex; align-items:center; gap:14px;">
+                    <div style="width:44px; height:44px; border-radius:var(--radius-md); background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(14,165,233,0.15)); border:1px solid rgba(16,185,129,0.3); display:flex; align-items:center; justify-content:center; color:var(--success); font-size:1.2rem;">
+                      <i class="fas fa-prescription-bottle-medical"></i>
+                    </div>
+                    <div>
+                      <div style="font-weight:700; font-size:1.05rem; display:flex; align-items:center; gap:10px;">
+                        <span>{{ item.medicine_name }}</span>
+                        <span class="badge badge-primary text-xs">{{ item.dosage }}</span>
+                      </div>
+                      <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:2px;">
+                        Patient: <strong>{{ item.elderly.get_full_name|default:item.elderly.username }}</strong>
+                        {% if item.elderly.elderly_profile.phone %}
+                          <span class="text-muted text-xs">({{ item.elderly.elderly_profile.phone }})</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="timing-badge">
+                      <i class="fas fa-clock"></i> {{ item.time_of_day }}
+                    </span>
+                    <span class="badge {% if item.status == 'active' %}badge-success{% elif item.status == 'paused' %}badge-warning{% else %}badge-ghost{% endif %} text-xs">
+                      {{ item.get_status_display }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Schedule Details & Instructions -->
+                <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:0.85rem; color:var(--text-secondary); background:rgba(0,0,0,0.2); padding:10px 14px; border-radius:var(--radius-md);">
+                  <div><strong style="color:var(--text-primary);"><i class="fas fa-repeat"></i> Frequency:</strong> {{ item.frequency }}</div>
+                  <div><strong style="color:var(--text-primary);"><i class="fas fa-utensils"></i> Instructions:</strong> {{ item.meal_timing }}</div>
+                  {% if item.last_taken %}
+                    <div><strong style="color:var(--success);"><i class="fas fa-check-circle"></i> Last Taken/Alerted:</strong> {{ item.last_taken|timesince }} ago</div>
+                  {% else %}
+                    <div><strong style="color:var(--text-muted);"><i class="fas fa-hourglass-start"></i> Intake:</strong> Pending first dosage</div>
+                  {% endif %}
+                </div>
+
+                {% if item.notes %}
+                  <div style="font-size:0.85rem; color:var(--text-secondary); border-left:2px solid var(--primary); padding-left:10px;">
+                    {{ item.notes }}
+                  </div>
+                {% endif %}
+
+                <!-- Action Footer -->
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05); flex-wrap:wrap; gap:8px;">
+                  <div style="font-size:0.78rem; color:var(--text-muted);">
+                    Scheduled since {{ item.start_date|date:"M d, Y" }}
+                  </div>
+                  <div style="display:flex; gap:8px;">
+                    <!-- Instant Alert Chime -->
+                    <a href="{% url 'admin_medicine_reminder_send_ping' item.id %}" class="btn btn-outline btn-sm" style="color:var(--info); border-color:rgba(14,165,233,0.3);" title="Send instant reminder notification to patient's app">
+                      <i class="fas fa-bell"></i> Send Care Alert Ping
+                    </a>
+
+                    <!-- Toggle Pause/Active -->
+                    <a href="{% url 'admin_medicine_reminder_toggle' item.id %}" class="btn btn-ghost btn-sm" title="Pause or Resume Schedule">
+                      {% if item.status == 'active' %}
+                        <i class="fas fa-pause text-warning"></i> Pause
+                      {% else %}
+                        <i class="fas fa-play text-success"></i> Resume
+                      {% endif %}
+                    </a>
+
+                    <!-- Delete -->
+                    <a href="{% url 'admin_medicine_reminder_delete' item.id %}" onclick="return confirm('Delete this medication schedule?');" class="btn btn-ghost btn-sm" style="color:var(--danger);" title="Delete Schedule">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center; padding:48px; background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--bg-glass-border);">
+              <i class="fas fa-pills" style="font-size:3rem; color:var(--text-muted); margin-bottom:12px;"></i>
+              <h3>No Medication Schedules Found</h3>
+              <p class="text-muted" style="margin-top:6px;">Add a new medicine schedule to begin tracking patient compliance.</p>
+              <button class="btn btn-primary btn-sm mt-3" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Schedule</button>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══ ADD MEDICINE MODAL ══ -->
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <h3 style="font-size:1.15rem;"><i class="fas fa-pills" style="color:var(--primary)"></i> Add Medicine Schedule</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeAddModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <form method="POST" action="{% url 'admin_medicine_reminder_add' %}">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Patient *</label>
+          <select name="elderly_id" required class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            {% for p in elderly_patients %}
+              <option value="{{ p.id }}">{{ p.get_full_name|default:p.username }} ({{ p.username }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Medicine Name *</label>
+            <input type="text" name="medicine_name" required placeholder="e.g. Metformin / Amlodipine" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Dosage *</label>
+            <input type="text" name="dosage" required placeholder="e.g. 500 mg / 1 tablet" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Frequency</label>
+            <select name="frequency" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+              <option value="Once Daily">Once Daily</option>
+              <option value="Twice Daily">Twice Daily</option>
+              <option value="Three Times Daily">Three Times Daily</option>
+              <option value="Every 8 Hours">Every 8 Hours</option>
+              <option value="As Needed (SOS)">As Needed (SOS)</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Time of Day</label>
+            <input type="text" name="time_of_day" value="08:30 AM (Morning)" placeholder="e.g. 08:30 AM & 08:30 PM" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Dietary & Intake Timing</label>
+          <select name="meal_timing" class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);">
+            <option value="After Meals">After Meals</option>
+            <option value="With Meals">With Meals</option>
+            <option value="Before Breakfast (Empty Stomach)">Before Breakfast (Empty Stomach)</option>
+            <option value="Before Bedtime">Before Bedtime</option>
+            <option value="Anytime with Water">Anytime with Water</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px;">Care Notes & Warnings</label>
+          <textarea name="notes" rows="2" placeholder="e.g. Check blood sugar level before taking. Avoid grapefruit juice." class="form-control" style="width:100%; background:var(--bg-glass); border:1px solid var(--bg-glass-border); color:var(--text-primary); padding:10px; border-radius:var(--radius-md);"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeAddModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-check"></i> Schedule Regimen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openAddModal() {
+      document.getElementById('addModal').classList.add('active');
+    }
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('active');
+    }
+
+    const sidebarToggle = document.getElementById('sidebar_toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar_overlay');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+      });
+      overlay.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      });
+    }
+  </script>
+  {% include 'user/components/popup_messages.html' %}
+</body>
+</html>

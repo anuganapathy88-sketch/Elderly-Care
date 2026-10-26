@@ -104,8 +104,48 @@
     <div class="auth-right">
       <div class="auth-form-container">
         <div class="auth-form-header">
-          <h2>Welcome Back 👋</h2>
-          <p>Sign in to your account to continue</p>
+          <h2 id="login_heading_title">Welcome Back 👋</h2>
+          <p id="login_heading_sub">Sign in to your account to continue</p>
+        </div>
+
+        <!-- Already Logged In Notice -->
+        {% if is_already_logged_in %}
+          <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 12px 14px; margin-top: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+            <div style="font-size: 0.85rem; color: var(--text-main);">
+              <i class="fas fa-circle-check" style="color: var(--primary);"></i>
+              Currently signed in as <strong>{{ current_user_name }}</strong> ({% if current_user_role == 'elderly' %}User (Elder User){% else %}{{ current_user_role|title }}{% endif %}).
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <a href="{% url 'login_redirect' %}" class="btn btn-primary btn-xs" style="padding: 5px 12px; font-size: 0.8rem; text-decoration: none;">Go to Dashboard</a>
+              <a href="{% url 'logout' %}" class="btn btn-ghost btn-xs" style="padding: 5px 12px; font-size: 0.8rem; text-decoration: none; border: 1px solid var(--bg-glass-border);">Log Out</a>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Role Switcher Tabs -->
+        <div style="display:flex; background:rgba(255,255,255,0.06); padding:4px; border-radius:12px; margin: 16px 0 20px 0; border:1px solid var(--bg-glass-border); gap:6px;">
+          <button type="button" id="tab_elderly" onclick="switchLoginRole('elderly')" style="flex:1.2; border:none; padding:9px 8px; border-radius:8px; font-weight:700; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; background:var(--primary); color:white; transition:all 0.2s;" title="User (Elder User)">
+            <i class="fas fa-user"></i> User (Elder User)
+          </button>
+          <button type="button" id="tab_doctor" onclick="switchLoginRole('doctor')" style="flex:1; border:none; padding:9px 8px; border-radius:8px; font-weight:600; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; background:transparent; color:var(--text-muted); transition:all 0.2s;" title="Doctor Portal">
+            <i class="fas fa-user-doctor"></i> Doctor
+          </button>
+          <button type="button" id="tab_admin" onclick="switchLoginRole('admin')" style="flex:0.9; border:none; padding:9px 8px; border-radius:8px; font-weight:600; font-size:0.86rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; background:transparent; color:var(--warning); transition:all 0.2s;" title="System Administrator">
+            <i class="fas fa-shield-halved"></i> Admin
+          </button>
+        </div>
+
+        <!-- 1-Click Admin Quick Sign In Banner (shown when Admin tab active) -->
+        <div id="admin_quick_banner" style="display:none; margin-bottom:18px; padding:12px 14px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <div style="font-weight:700; color:var(--warning); font-size:0.88rem;"><i class="fas fa-shield-halved"></i> Administrator Mode</div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">Default: admin / admin123</div>
+            </div>
+            <a href="{% url 'admin_login' %}?quick=1" class="btn btn-warning btn-xs" style="font-size:0.8rem; padding:6px 12px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+              <i class="fas fa-bolt"></i> 1-Click Admin Login
+            </a>
+          </div>
         </div>
 
         {% if messages %}
@@ -119,25 +159,25 @@
           </div>
         {% endif %}
 
-        <form id="login_form" method="POST" action="{% url 'login' %}">
+        <form id="login_form" method="POST" action="">
           {% csrf_token %}
 
           <!-- Email or Username -->
           <div class="form-group">
-            <label class="form-label" for="login_email">Email or Username</label>
+            <label class="form-label" for="login_email">Username or Email</label>
             <div class="input-wrapper">
-              <i class="fas fa-envelope input-icon"></i>
+              <i class="fas fa-user input-icon" id="login_icon"></i>
               <input
                 type="text"
                 id="login_email"
                 name="username_or_email"
                 class="form-input"
-                placeholder="Email (e.g. shahid@gmail.com) or Username (e.g. dr_shahid)"
+                placeholder="Username (e.g. ramesh, anuganapathy88) or Email"
                 autocomplete="username"
                 required
               />
             </div>
-            <span style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">Doctors can log in with their email, username (e.g. dr_shahid), or name.</span>
+            <span id="login_hint" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; display:block;">Elder users can sign in with their username (e.g. ramesh, anuganapathy88) or email.</span>
           </div>
 
           <!-- Password -->
@@ -168,7 +208,7 @@
           </div>
 
           <button type="submit" id="login_btn" class="btn btn-primary btn-full btn-lg auth-submit">
-            <i class="fas fa-right-to-bracket"></i> Sign In
+            <i class="fas fa-right-to-bracket"></i> Sign In as User (Elder User)
           </button>
         </form>
 
@@ -178,16 +218,19 @@
             <i class="fas fa-key" style="color:var(--info);"></i> Quick Test Accounts (Click to Auto-fill):
           </div>
           <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('shahid@gmail.com', '123456')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="Dr. Shahid (General Medicine)">
-              🩺 Dr. Shahid
+            <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('ramesh', 'password123')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="Ramesh - User (Elder User)">
+              👴 Elder User (Ramesh)
+            </button>
+            <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('anuganapathy88', '123456')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="Anusha - User (Elder User)">
+              👵 Elder User (Anusha)
             </button>
             <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('dr_sharma', 'doctor123')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="Dr. Sharma (Geriatric Medicine)">
               🩺 Dr. Sharma
             </button>
-            <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('ramesh', 'password123')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="Ramesh (Elderly Patient)">
-              👴 Patient Ramesh
+            <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('shahid@gmail.com', '123456')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="Dr. Shahid (General Medicine)">
+              🩺 Dr. Shahid
             </button>
-            <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('admin', 'admin123')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="System Admin">
+            <button type="button" class="btn btn-outline btn-xs" onclick="quickFill('admin', 'admin123')" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; cursor:pointer;" title="System Administrator">
               ⚙️ Admin
             </button>
           </div>
@@ -198,8 +241,13 @@
         </div>
 
         <div class="auth-switch" style="display:flex; flex-direction:column; gap:12px;">
-          <div><a href="{% url 'register_elderly' %}?switch=1" class="btn btn-outline" style="width:100%; justify-content:center; gap:8px;"><i class="fas fa-heart-pulse" style="color:var(--primary);"></i> Register as Elderly Patient</a></div>
+          <div><a href="{% url 'register_elderly' %}?switch=1" class="btn btn-outline" style="width:100%; justify-content:center; gap:8px;"><i class="fas fa-user-plus" style="color:var(--primary);"></i> Register as User (Elder User)</a></div>
           <div><a href="{% url 'register_doctor' %}?switch=1" class="btn btn-ghost" style="width:100%; justify-content:center; color:var(--text-muted); font-size:0.9rem; gap:8px;"><i class="fas fa-user-doctor" style="color:var(--info);"></i> Are you a doctor? Apply for registration</a></div>
+          <div style="border-top:1px dashed var(--bg-glass-border); padding-top:4px;">
+            <a href="{% url 'guest_login' %}" class="btn btn-ghost" style="width:100%; justify-content:center; color:var(--text-secondary); font-size:0.88rem; gap:8px; background:rgba(255,255,255,0.04); border-radius:10px;">
+              <i class="fas fa-arrow-right-to-bracket" style="color:var(--primary);"></i> Explore as Guest Elder User
+            </a>
+          </div>
         </div>
 
         <div class="auth-footer mt-4">
@@ -225,7 +273,108 @@
       }
     }
 
+    function switchLoginRole(role) {
+      const tabElderly = document.getElementById('tab_elderly') || document.getElementById('tab_patient');
+      const tabDoctor = document.getElementById('tab_doctor');
+      const tabAdmin = document.getElementById('tab_admin');
+      const adminBanner = document.getElementById('admin_quick_banner');
+      const headingTitle = document.getElementById('login_heading_title');
+      const headingSub = document.getElementById('login_heading_sub');
+      const emailInput = document.getElementById('login_email');
+      const pwInput = document.getElementById('login_password');
+      const submitBtn = document.getElementById('login_btn');
+      const loginHint = document.getElementById('login_hint');
+      const loginIcon = document.getElementById('login_icon');
+
+      // Reset tabs style
+      [tabElderly, tabDoctor, tabAdmin].forEach(btn => {
+        if (!btn) return;
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--text-muted)';
+        btn.style.boxShadow = 'none';
+      });
+
+      if (role === 'admin') {
+        if (tabAdmin) {
+          tabAdmin.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+          tabAdmin.style.color = '#ffffff';
+          tabAdmin.style.boxShadow = '0 4px 14px rgba(245, 158, 11, 0.35)';
+        }
+        if (adminBanner) adminBanner.style.display = 'block';
+        if (headingTitle) headingTitle.innerHTML = 'Admin Portal ⚙️';
+        if (headingSub) headingSub.textContent = 'Sign in with administrator credentials';
+        if (emailInput) {
+          emailInput.placeholder = 'Admin username (admin) or email';
+        }
+        if (loginHint) {
+          loginHint.textContent = 'Administrators can log in with username (admin) or admin email.';
+        }
+        if (loginIcon) {
+          loginIcon.className = 'fas fa-shield-halved input-icon';
+        }
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-shield-halved"></i> Sign In as Admin';
+          submitBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+          submitBtn.style.borderColor = '#f59e0b';
+        }
+      } else if (role === 'doctor') {
+        if (tabDoctor) {
+          tabDoctor.style.background = 'var(--info)';
+          tabDoctor.style.color = '#ffffff';
+          tabDoctor.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.35)';
+        }
+        if (adminBanner) adminBanner.style.display = 'none';
+        if (headingTitle) headingTitle.innerHTML = 'Doctor Portal 🩺';
+        if (headingSub) headingSub.textContent = 'Sign in with your verified medical credentials';
+        if (emailInput) {
+          emailInput.placeholder = 'Doctor email (e.g. shahid@gmail.com) or username (e.g. dr_sharma)';
+        }
+        if (loginHint) {
+          loginHint.textContent = 'Doctors can log in with email, username (e.g. dr_sharma), or name.';
+        }
+        if (loginIcon) {
+          loginIcon.className = 'fas fa-user-doctor input-icon';
+        }
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-user-doctor"></i> Sign In as Doctor';
+          submitBtn.style.background = 'var(--info)';
+          submitBtn.style.borderColor = 'var(--info)';
+        }
+      } else {
+        // User (Elder User) role
+        if (tabElderly) {
+          tabElderly.style.background = 'var(--primary)';
+          tabElderly.style.color = '#ffffff';
+          tabElderly.style.boxShadow = '0 4px 14px var(--primary-glow)';
+        }
+        if (adminBanner) adminBanner.style.display = 'none';
+        if (headingTitle) headingTitle.innerHTML = 'Welcome Back 👋';
+        if (headingSub) headingSub.textContent = 'Sign in to your user (elder user) account to continue';
+        if (emailInput) {
+          emailInput.placeholder = 'Username (e.g. ramesh, anuganapathy88) or Email';
+        }
+        if (loginHint) {
+          loginHint.textContent = 'Elder users can sign in with their username (e.g. ramesh, anuganapathy88) or email.';
+        }
+        if (loginIcon) {
+          loginIcon.className = 'fas fa-user input-icon';
+        }
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> Sign In as User (Elder User)';
+          submitBtn.style.background = '';
+          submitBtn.style.borderColor = '';
+        }
+      }
+    }
+
     function quickFill(user, pw) {
+      if (user === 'admin') {
+        switchLoginRole('admin');
+      } else if (user.startsWith('dr_') || user.includes('shahid')) {
+        switchLoginRole('doctor');
+      } else {
+        switchLoginRole('elderly');
+      }
       const userInput = document.getElementById('login_email');
       const pwInput = document.getElementById('login_password');
       if (userInput && pwInput) {
@@ -240,6 +389,16 @@
         }, 1200);
       }
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roleParam = urlParams.get('role') || '{{ initial_role|default:"" }}';
+      if (roleParam === 'admin') {
+        switchLoginRole('admin');
+      } else if (roleParam === 'doctor') {
+        switchLoginRole('doctor');
+      }
+    });
   </script>
   {% include 'user/components/popup_messages.html' %}
 </body>

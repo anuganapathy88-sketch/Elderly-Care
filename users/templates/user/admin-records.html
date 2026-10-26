@@ -29,25 +29,33 @@
       <div class="sidebar-user">
         <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
         <div class="sidebar-user-info">
-          <div class="user-name" id="sidebar_user_name">Admin</div>
-          <div class="user-email" id="sidebar_user_email">admin@eldercare.com</div>
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
         </div>
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Overview</span>
-        <a href="admin-dashboard.html" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
-        <a href="admin-reports.html" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Basic Reports</a>
-        
+        <a href="{% url 'admin_dashboard' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring</a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
         <span class="nav-section-label">Management</span>
-        <a href="admin-users.html" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Users</a>
-        <a href="admin-doctors.html" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Doctors</a>
-        
-        <span class="nav-section-label">System Data</span>
-        <a href="admin-appointments.html" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
-        <a href="admin-records.html" class="nav-link active"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
       </nav>
       <div class="sidebar-footer">
-        <button class="sidebar-logout" onclick="Auth.logout()"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</button>
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
       </div>
     </aside>
 
@@ -59,6 +67,11 @@
             <h2>🗂️ Global Medical Records</h2>
             <p>Read-only overview of patient histories and prescriptions</p>
           </div>
+        </div>
+        <div class="topbar-right" style="display:flex; align-items:center; gap:10px;">
+          <a href="{% url 'admin_settings' %}" class="btn btn-outline btn-sm" style="display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-gear"></i> Settings
+          </a>
         </div>
       </header>
 

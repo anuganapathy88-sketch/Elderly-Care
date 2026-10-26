@@ -24,25 +24,36 @@
       <div class="sidebar-user">
         <div class="avatar" id="sidebar_avatar" style="width:42px;height:42px;font-size:0.9rem;">A</div>
         <div class="sidebar-user-info">
-          <div class="user-name" id="sidebar_user_name">Admin</div>
-          <div class="user-email" id="sidebar_user_email">admin@eldercare.com</div>
+          <div class="user-name" id="sidebar_user_name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-email" id="sidebar_user_email">{{ request.user.email|default:"admin@eldercare.com" }}</div>
         </div>
       </div>
       <nav class="sidebar-nav">
         <span class="nav-section-label">Overview</span>
-        <a href="admin-dashboard.html" class="nav-link active"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
-        <a href="admin-reports.html" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Basic Reports</a>
-        
+        <a href="{% url 'admin_dashboard' %}" class="nav-link active"><span class="nav-icon"><i class="fas fa-gauge-high"></i></span>Dashboard</a>
+        <a href="{% url 'admin_reports' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-chart-pie"></i></span>Reports & Analytics</a>
+
+        <span class="nav-section-label">Operations & Care</span>
+        <a href="{% url 'admin_emergency' %}" class="nav-link">
+          <span class="nav-icon"><i class="fas fa-truck-medical"></i></span>Emergency Monitoring
+          {% if active_emergencies > 0 %}<span class="badge badge-danger text-xs" style="margin-left:auto; padding:2px 7px;">{{ active_emergencies }}</span>{% endif %}
+        </a>
+        <a href="{% url 'admin_medicine_reminders' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-pills"></i></span>Medicine Reminders</a>
+        <a href="{% url 'admin_health_assistant' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-robot"></i></span>Health Assistant</a>
+
         <span class="nav-section-label">Management</span>
-        <a href="admin-users.html" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Users</a>
-        <a href="admin-doctors.html" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Doctors</a>
-        
-        <span class="nav-section-label">System Data</span>
-        <a href="admin-appointments.html" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Appointments</a>
-        <a href="admin-records.html" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+        <a href="{% url 'admin_users' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-users"></i></span>Manage Users</a>
+        <a href="{% url 'admin_doctors' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-user-doctor"></i></span>Manage Doctors</a>
+        <a href="{% url 'admin_appointments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-calendar-check"></i></span>Manage Appointments</a>
+        <a href="{% url 'admin_payments' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-credit-card"></i></span>Payments & Ledger</a>
+        <a href="{% url 'admin_feedback' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-comments"></i></span>Feedback Management</a>
+        <a href="{% url 'admin_records' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-file-medical"></i></span>Medical Records</a>
+
+        <span class="nav-section-label">Configuration</span>
+        <a href="{% url 'admin_settings' %}" class="nav-link"><span class="nav-icon"><i class="fas fa-gear"></i></span>Settings</a>
       </nav>
       <div class="sidebar-footer">
-        <button class="sidebar-logout" onclick="Auth.logout()"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</button>
+        <a href="{% url 'logout' %}" class="sidebar-logout" style="text-decoration:none; display:flex; align-items:center; gap:8px;"><span class="nav-icon"><i class="fas fa-right-from-bracket"></i></span>Sign Out</a>
       </div>
     </aside>
 
@@ -52,28 +63,128 @@
           <button class="topbar-btn" id="sidebar_toggle"><i class="fas fa-bars"></i></button>
           <div class="topbar-title">
             <h2>Dashboard</h2>
-            <p>System overview and key metrics</p>
+            <p>System overview and key healthcare metrics</p>
           </div>
+        </div>
+        <div class="topbar-right" style="display:flex; align-items:center; gap:10px;">
+          <a href="{% url 'admin_emergency' %}" class="btn btn-danger btn-sm" style="display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-truck-medical"></i> Emergency Desk
+          </a>
+          <a href="{% url 'admin_settings' %}" class="btn btn-outline btn-sm" style="display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-gear"></i> Settings
+          </a>
         </div>
       </header>
 
       <div class="page-content">
+
+        <!-- Active Emergency Alert Banner -->
+        {% if active_emergencies > 0 %}
+          <div style="background:linear-gradient(135deg,rgba(239,68,68,0.25),rgba(239,68,68,0.1)); border:1px solid rgba(239,68,68,0.45); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:var(--danger); box-shadow:0 0 10px var(--danger);"></span>
+              <div>
+                <strong style="color:var(--danger); font-size:1.02rem;">{{ active_emergencies }} ACTIVE EMERGENCY ALERT{% if active_emergencies > 1 %}S{% endif %} REQUIRING ATTENTION</strong>
+                <div style="font-size:0.85rem; color:var(--text-secondary);">Senior SOS / vital sign incident triggers awaiting response.</div>
+              </div>
+            </div>
+            <a href="{% url 'admin_emergency' %}" class="btn btn-danger btn-sm" style="text-decoration:none;">
+              Open Emergency Monitoring ➔
+            </a>
+          </div>
+        {% endif %}
+
+        <!-- Stat Cards -->
         <div class="module-stats">
-          <div class="module-stat delay-1">
-            <div class="ms-value" id="stat_users" style="color:var(--primary)">0</div>
-            <div class="ms-label">Total Users (Patients)</div>
+          <div class="module-stat">
+            <div class="ms-value" id="stat_users" style="color:var(--primary)">{{ total_elderly|default:"0" }}</div>
+            <div class="ms-label">Total Senior Patients</div>
           </div>
-          <div class="module-stat delay-2">
-            <div class="ms-value" id="stat_doctors" style="color:var(--info)">0</div>
-            <div class="ms-label">Total Doctors</div>
+          <div class="module-stat">
+            <div class="ms-value" id="stat_doctors" style="color:var(--info)">{{ total_doctors|default:"0" }}</div>
+            <div class="ms-label">Verified Doctors</div>
           </div>
-          <div class="module-stat delay-3">
-            <div class="ms-value" id="stat_appointments" style="color:var(--success)">0</div>
+          <div class="module-stat">
+            <div class="ms-value" id="stat_appointments" style="color:var(--success)">{{ total_appointments|default:"0" }}</div>
             <div class="ms-label">Total Appointments</div>
           </div>
-          <div class="module-stat delay-4">
-            <div class="ms-value" id="stat_pending" style="color:var(--warning)">0</div>
-            <div class="ms-label">Pending Appointments</div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--danger)">{{ active_emergencies|default:"0" }}</div>
+            <div class="ms-label">Active Emergencies</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:#10b981">₹{{ total_payments|floatformat:2 }}</div>
+            <div class="ms-label">Revenue Collected</div>
+          </div>
+          <div class="module-stat">
+            <div class="ms-value" style="color:var(--warning)">{{ active_reminders_count|default:"0" }}</div>
+            <div class="ms-label">Active Medicine Regimens</div>
+          </div>
+        </div>
+
+        <!-- Quick Module Navigation Hub -->
+        <div style="margin-top:24px;">
+          <h3 style="font-size:1.05rem; margin-bottom:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Admin Modules</h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px;">
+            <a href="{% url 'admin_emergency' %}" style="text-decoration:none; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:center; gap:14px; transition:all 0.2s ease;">
+              <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(239,68,68,0.15); color:var(--danger); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                <i class="fas fa-truck-medical"></i>
+              </div>
+              <div>
+                <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">Emergency Monitoring</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">Live SOS & Vitals</div>
+              </div>
+            </a>
+
+            <a href="{% url 'admin_feedback' %}" style="text-decoration:none; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:center; gap:14px; transition:all 0.2s ease;">
+              <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(245,158,11,0.15); color:var(--warning); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                <i class="fas fa-comments"></i>
+              </div>
+              <div>
+                <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">Feedback Management</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">Patient ratings & reviews</div>
+              </div>
+            </a>
+
+            <a href="{% url 'admin_medicine_reminders' %}" style="text-decoration:none; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:center; gap:14px; transition:all 0.2s ease;">
+              <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(16,185,129,0.15); color:var(--success); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                <i class="fas fa-pills"></i>
+              </div>
+              <div>
+                <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">Medicine Reminders</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">Senior dosage adherence</div>
+              </div>
+            </a>
+
+            <a href="{% url 'admin_payments' %}" style="text-decoration:none; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:center; gap:14px; transition:all 0.2s ease;">
+              <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(14,165,233,0.15); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                <i class="fas fa-credit-card"></i>
+              </div>
+              <div>
+                <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">Payments & Ledger</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">Invoices & View Payment</div>
+              </div>
+            </a>
+
+            <a href="{% url 'admin_health_assistant' %}" style="text-decoration:none; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:center; gap:14px; transition:all 0.2s ease;">
+              <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(168,85,247,0.15); color:#c084fc; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                <i class="fas fa-robot"></i>
+              </div>
+              <div>
+                <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">Health Assistant</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">AI diagnostic triage</div>
+              </div>
+            </a>
+
+            <a href="{% url 'admin_appointments' %}" style="text-decoration:none; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:16px; display:flex; align-items:center; gap:14px; transition:all 0.2s ease;">
+              <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(59,130,246,0.15); color:var(--info); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <div>
+                <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">Manage Appointments</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">Schedules & Doctors</div>
+              </div>
+            </a>
           </div>
         </div>
 
@@ -81,14 +192,39 @@
           
           <div style="flex:1; min-width:300px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px;">
             <h3 style="margin-bottom:16px; font-size:1.1rem;"><i class="fas fa-user-doctor" style="color:var(--info)"></i> Pending Doctor Approvals</h3>
-            <div id="pending_doctors_list"></div>
-            <a href="admin-doctors.html" class="btn btn-ghost btn-sm mt-2" style="width:100%; justify-content:center;">View all doctors</a>
+            <div id="pending_doctors_list">
+              {% if pending_doctor_list %}
+                {% for doc in pending_doctor_list %}
+                  <div style="padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                      <div style="font-weight:600;">Dr. {{ doc.user.get_full_name|default:doc.user.username }}</div>
+                      <div style="font-size:0.8rem; color:var(--text-secondary);">{{ doc.specialization|default:"Specialist" }}</div>
+                    </div>
+                    <a href="{% url 'admin_doctor_toggle_approval' doc.id %}" class="badge badge-warning text-xs" style="text-decoration:none;">Approve</a>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p class="text-muted text-sm">No pending approvals.</p>
+              {% endif %}
+            </div>
+            <a href="{% url 'admin_doctors' %}" class="btn btn-ghost btn-sm mt-2" style="width:100%; justify-content:center;">View all doctors</a>
           </div>
 
           <div style="flex:1; min-width:300px; background:var(--bg-card); border:1px solid var(--bg-glass-border); border-radius:var(--radius-lg); padding:20px;">
             <h3 style="margin-bottom:16px; font-size:1.1rem;"><i class="fas fa-calendar" style="color:var(--primary)"></i> Recent Appointments</h3>
-            <div id="recent_appointments_list"></div>
-            <a href="admin-appointments.html" class="btn btn-ghost btn-sm mt-2" style="width:100%; justify-content:center;">View all appointments</a>
+            <div id="recent_appointments_list">
+              {% if recent_appointments %}
+                {% for appt in recent_appointments %}
+                  <div style="padding:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <div style="font-weight:600; font-size:0.95rem;">{{ appt.elderly.get_full_name|default:appt.elderly.username }} ➔ Dr. {{ appt.doctor.get_full_name|default:appt.doctor.username }}</div>
+                    <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">{{ appt.appointment_date }} at {{ appt.appointment_time }} <span class="badge badge-{% if appt.status == 'approved' or appt.status == 'completed' %}success{% elif appt.status == 'cancelled' %}danger{% else %}warning{% endif %} text-xs" style="margin-left:8px;">{{ appt.status|title }}</span></div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p class="text-muted text-sm">No recent appointments.</p>
+              {% endif %}
+            </div>
+            <a href="{% url 'admin_appointments' %}" class="btn btn-ghost btn-sm mt-2" style="width:100%; justify-content:center;">View all appointments</a>
           </div>
 
         </div>
@@ -102,43 +238,13 @@
   <script src="/static/js/admin-app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const users = Storage.getUsers();
-      const doctors = Storage.getDoctors();
-      const appts = Storage.getAllAppointments();
-
-      document.getElementById('stat_users').textContent = users.length;
-      document.getElementById('stat_doctors').textContent = doctors.filter(d => d.status !== 'pending').length;
-      document.getElementById('stat_appointments').textContent = appts.length;
-      document.getElementById('stat_pending').textContent = appts.filter(a => a.status === 'upcoming' && !a.accepted).length;
-
-      const pendingDocs = doctors.filter(d => d.status === 'pending');
-      const pDocList = document.getElementById('pending_doctors_list');
-      if (!pendingDocs.length) pDocList.innerHTML = `<p class="text-muted text-sm">No pending approvals.</p>`;
-      else {
-        pDocList.innerHTML = pendingDocs.slice(0,3).map(d => `
-          <div style="padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
-            <div>
-              <div style="font-weight:600;">${d.name}</div>
-              <div style="font-size:0.8rem; color:var(--text-secondary);">${d.specialization}</div>
-            </div>
-            <span class="badge badge-warning text-xs">Pending</span>
-          </div>
-        `).join('');
-      }
-
-      const recentAppts = appts.slice(-3).reverse();
-      const rApptList = document.getElementById('recent_appointments_list');
-      if (!recentAppts.length) rApptList.innerHTML = `<p class="text-muted text-sm">No recent appointments.</p>`;
-      else {
-        rApptList.innerHTML = recentAppts.map(a => {
-          const u = Storage.getUserById(a.userId);
-          const d = Storage.getDoctorById(a.doctorId);
-          return `
-          <div style="padding:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
-            <div style="font-weight:600; font-size:0.95rem;">${u ? u.name : 'Unknown'} ➔ ${d ? d.name : 'Unknown'}</div>
-            <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">${a.date} at ${a.time}</div>
-          </div>
-        `}).join('');
+      // If Storage has mock data and backend stats are empty, allow client-side preview
+      if (typeof Storage !== 'undefined' && Storage.getUsers) {
+        const users = Storage.getUsers();
+        const statUsers = document.getElementById('stat_users');
+        if (statUsers && statUsers.textContent.trim() === '0' && users.length > 0) {
+          statUsers.textContent = users.length;
+        }
       }
     });
   </script>
